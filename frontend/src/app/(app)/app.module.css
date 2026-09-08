@@ -1,0 +1,50 @@
+.appShell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mainContent {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+.pageWrapper {
+  padding: 32px;
+  min-height: 100%;
+  animation: fadeIn 0.25s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.loadingScreen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .pageWrapper {
+    padding: 20px 16px;
+  }
+}

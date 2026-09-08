@@ -1,12 +1,12 @@
 # Personal Finance Tracker
 
-A complete, production-quality Personal Finance Tracker application built with Angular 19, Node.js/Express, PostgreSQL, and Prisma.
+A complete, production-quality Personal Finance Tracker application built with Next.js (App Router), Node.js/Express, PostgreSQL, and Prisma.
 
 ## Overview
 This application allows users to manage their personal information, track monthly salary, configure fixed and monthly-reset categories, and track daily expenses. It features a comprehensive dashboard and analytics views to visualize spending habits.
 
 ## Architecture & Technology Stack
-- **Frontend**: Angular 19, TypeScript, Angular Material, Chart.js (ng2-charts)
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, CSS Modules, Chart.js (react-chartjs-2)
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL
 - **ORM**: Prisma
@@ -26,7 +26,6 @@ This application allows users to manage their personal information, track monthl
    DATABASE_URL="postgresql://user:password@localhost:5432/finance_tracker?schema=public"
    JWT_SECRET="your_secure_secret"
    PORT=3000
-   FRONTEND_URL="http://localhost:4200"
    ```
 3. Install dependencies:
    ```bash
@@ -44,14 +43,15 @@ This application allows users to manage their personal information, track monthl
 
 ### Frontend Setup
 1. Navigate to the `frontend` directory.
-2. Install dependencies (use legacy peer deps if encountering ng2-charts conflicts):
+2. Install dependencies:
    ```bash
-   npm install --legacy-peer-deps
+   npm install
    ```
-3. Start the Angular development server:
+3. Start the Next.js development server:
    ```bash
-   npm start
+   npm run dev
    ```
+   The app will be available at `http://localhost:3001` (or `3000` if the port is free).
 
 ## Production Build
 
@@ -59,11 +59,7 @@ This application allows users to manage their personal information, track monthl
 Run `npx tsc` inside the `backend` directory.
 
 ### Frontend
-Run `npm run build` inside the `frontend` directory.
-
-## Testing
-- Backend tests can be run using Jest/Supertest if configured.
-- Frontend tests can be run using `npm run test` (Karma/Jasmine).
+Run `npm run build` inside the `frontend` directory, followed by `npm start` to run the production server.
 
 ## API Documentation
 The API contains routes for:

@@ -1,0 +1,11 @@
+.filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
