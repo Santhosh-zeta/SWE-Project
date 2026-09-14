@@ -96,3 +96,23 @@ export const archiveCategory = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+export const restoreCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const categoryId = parseInt(req.params.id as string);
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    const category = await prisma.category.findFirst({ where: { id: categoryId, userId } });
+    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+
+    const updated = await prisma.category.update({
+      where: { id: categoryId },
+      data: { isActive: true }
+    });
+
+    return res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

@@ -33,6 +33,7 @@ export default function CategoriesPage() {
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => { loadCategories(); }, []);
 
@@ -90,6 +91,17 @@ export default function CategoriesPage() {
     }
   }
 
+  async function handleRestore(category: any) {
+    if (!confirm(`Restore "${category.name}"?`)) return;
+    try {
+      await api.patch(`/categories/${category.id}/restore`, {});
+      showToast('Category restored', 'success');
+      loadCategories();
+    } catch {
+      showToast('Failed to restore category', 'error');
+    }
+  }
+
   const typeLabel: Record<string, string> = {
     FIXED: 'Fixed Expense',
     MONTHLY_RESET: 'Monthly Budget',
@@ -108,6 +120,13 @@ export default function CategoriesPage() {
         </button>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+          <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} />
+          Show Archived Categories
+        </label>
+      </div>
+
       <div className="card" style={{ padding: 0 }}>
         <div className="table-wrapper" style={{ border: 'none', borderRadius: 'var(--radius-lg)' }}>
           <table className="data-table">
@@ -122,14 +141,14 @@ export default function CategoriesPage() {
               </tr>
             </thead>
             <tbody>
-              {categories.length === 0 ? (
+              {categories.filter(c => showArchived || c.isActive).length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center text-muted" style={{ padding: 32 }}>
                     No categories found. Start by adding one.
                   </td>
                 </tr>
               ) : (
-                categories.map(cat => (
+                categories.filter(c => showArchived || c.isActive).map(cat => (
                   <tr key={cat.id} style={{ opacity: cat.isActive ? 1 : 0.55 }}>
                     <td>
                       <span
@@ -150,7 +169,7 @@ export default function CategoriesPage() {
                       </span>
                     </td>
                     <td>
-                      {cat.isActive && (
+                      {cat.isActive ? (
                         <button
                           className="btn-icon"
                           onClick={() => handleArchive(cat)}
@@ -161,6 +180,18 @@ export default function CategoriesPage() {
                             <polyline points="21 8 21 21 3 21 3 8" />
                             <rect x="1" y="3" width="22" height="5" />
                             <line x1="10" y1="12" x2="14" y2="12" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleRestore(cat)}
+                          title="Restore"
+                          style={{ color: 'var(--green)' }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
                           </svg>
                         </button>
                       )}
