@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import styles from './analytics.module.css';
 
 // Dynamic import to avoid SSR issues with Chart.js
-const Doughnut = dynamic(() => import('react-chartjs-2').then(m => m.Doughnut), { ssr: false });
+const Pie = dynamic(() => import('react-chartjs-2').then(m => m.Pie), { ssr: false });
 
 // Register Chart.js pieces
 if (typeof window !== 'undefined') {
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
                   <p className="text-muted" style={{ fontSize: '0.8rem' }}>Add expenses to see your spending analysis.</p>
                 </div>
               ) : chartData ? (
-                <Doughnut data={chartData} options={chartOptions} />
+                <Pie data={chartData} options={chartOptions} />
               ) : null}
             </div>
           </div>

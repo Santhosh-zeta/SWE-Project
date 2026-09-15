@@ -30,6 +30,7 @@ export default function CategoriesPage() {
   const showToast = useToast();
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -45,7 +46,21 @@ export default function CategoriesPage() {
   }
 
   function openCreate() {
+    setEditingCategory(null);
     setForm({ ...emptyForm });
+    setFormErrors({});
+    setIsModalOpen(true);
+  }
+
+  function openEdit(category: any) {
+    setEditingCategory(category);
+    setForm({
+      name: category.name,
+      type: category.type,
+      configuredAmount: String(category.configuredAmount),
+      color: category.color,
+      description: category.description ?? '',
+    });
     setFormErrors({});
     setIsModalOpen(true);
   }
@@ -62,19 +77,25 @@ export default function CategoriesPage() {
   async function handleSave() {
     if (!validateForm()) return;
     setIsSaving(true);
+    const payload = {
+      name: form.name,
+      type: form.type,
+      configuredAmount: Number(form.configuredAmount),
+      color: form.color,
+      description: form.description,
+    };
     try {
-      await api.post('/categories', {
-        name: form.name,
-        type: form.type,
-        configuredAmount: Number(form.configuredAmount),
-        color: form.color,
-        description: form.description,
-      });
-      showToast('Category created successfully', 'success');
+      if (editingCategory) {
+        await api.put(`/categories/${editingCategory.id}`, payload);
+        showToast('Category updated successfully', 'success');
+      } else {
+        await api.post('/categories', payload);
+        showToast('Category created successfully', 'success');
+      }
       setIsModalOpen(false);
       loadCategories();
     } catch (err: any) {
-      showToast(err.body?.message || 'Error creating category', 'error');
+      showToast(err.body?.message || 'Error saving category', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -169,32 +190,45 @@ export default function CategoriesPage() {
                       </span>
                     </td>
                     <td>
-                      {cat.isActive ? (
+                      <div style={{ display: 'flex', gap: 4 }}>
                         <button
                           className="btn-icon"
-                          onClick={() => handleArchive(cat)}
-                          title="Archive"
-                          style={{ color: 'var(--yellow)' }}
+                          onClick={() => openEdit(cat)}
+                          title="Edit"
+                          style={{ color: 'var(--accent)' }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="21 8 21 21 3 21 3 8" />
-                            <rect x="1" y="3" width="22" height="5" />
-                            <line x1="10" y1="12" x2="14" y2="12" />
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
                         </button>
-                      ) : (
-                        <button
-                          className="btn-icon"
-                          onClick={() => handleRestore(cat)}
-                          title="Restore"
-                          style={{ color: 'var(--green)' }}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                            <path d="M3 3v5h5" />
-                          </svg>
-                        </button>
-                      )}
+                        {cat.isActive ? (
+                          <button
+                            className="btn-icon"
+                            onClick={() => handleArchive(cat)}
+                            title="Archive"
+                            style={{ color: 'var(--yellow)' }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="21 8 21 21 3 21 3 8" />
+                              <rect x="1" y="3" width="22" height="5" />
+                              <line x1="10" y1="12" x2="14" y2="12" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-icon"
+                            onClick={() => handleRestore(cat)}
+                            title="Restore"
+                            style={{ color: 'var(--green)' }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                              <path d="M3 3v5h5" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -208,7 +242,7 @@ export default function CategoriesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create Category"
+        title={editingCategory ? 'Edit Category' : 'Create Category'}
         footer={
           <>
             <button className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>
