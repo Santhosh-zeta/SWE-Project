@@ -11,6 +11,7 @@ import categoryRoutes from './routes/category.routes';
 import expenseRoutes from './routes/expense.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import analyticsRoutes from './routes/analytics.routes';
+import reportsRoutes from './routes/reports.routes';
 
 const app: Application = express();
 const prisma = new PrismaClient();
@@ -47,6 +48,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', reportsRoutes);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'API is running' });

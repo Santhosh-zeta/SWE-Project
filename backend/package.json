@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "start": "tsx src/server.ts",
-    "dev": "nodemon --exec tsx src/server.ts"
+    "start": "node init && tsx src/server.ts",
+    "dev": "node init && nodemon --exec tsx src/server.ts"
   },
   "keywords": [],
   "author": "",

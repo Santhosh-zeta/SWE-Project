@@ -40,6 +40,9 @@ export default function ExpensesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [currentMonth, setCurrentMonth] = useState(nowYearMonth());
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [form, setForm] = useState<ExpenseForm>(emptyForm);
@@ -57,16 +60,18 @@ export default function ExpensesPage() {
     } catch {}
   }
 
-  async function loadExpenses() {
+  async function loadExpenses(p = page) {
     try {
-      let url = `/expenses?month=${currentMonth}`;
+      let url = `/expenses?month=${currentMonth}&page=${p}&limit=20`;
       if (selectedCategory) url += `&categoryId=${selectedCategory}`;
+      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
       const res = await api.get(url);
       setExpenses(res.data.expenses);
+      setPagination(res.data.pagination);
     } catch {}
   }
 
-  useEffect(() => { loadExpenses(); }, [currentMonth, selectedCategory]);
+  useEffect(() => { setPage(1); loadExpenses(1); }, [currentMonth, selectedCategory, searchQuery]);
 
   function openAdd() {
     setEditingExpense(null);
@@ -192,6 +197,16 @@ export default function ExpensesPage() {
             ))}
           </select>
         </div>
+        <div className="form-group" style={{ minWidth: 200, flex: 1 }}>
+          <label className="form-label">Search</label>
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Search descriptions…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -316,6 +331,30 @@ export default function ExpensesPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page <= 1}
+            onClick={() => { const p = page - 1; setPage(p); loadExpenses(p); }}
+          >
+            ← Prev
+          </button>
+          <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+            Page {pagination.page} of {pagination.totalPages}
+            <span style={{ marginLeft: 8 }}>({pagination.total} total)</span>
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={page >= pagination.totalPages}
+            onClick={() => { const p = page + 1; setPage(p); loadExpenses(p); }}
+          >
+            Next →
+          </button>
+        </div>
+      )}
 
       {/* Modal */}
       <Modal
