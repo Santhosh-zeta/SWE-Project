@@ -27,6 +27,13 @@ interface ExpenseForm {
 
 const emptyForm: ExpenseForm = { date: todayStr(), categoryId: '', amount: '', description: '' };
 
+interface QuickRow {
+  date: string;
+  categoryId: string;
+  amount: string;
+  description: string;
+}
+
 export default function ExpensesPage() {
   const showToast = useToast();
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -38,6 +45,8 @@ export default function ExpensesPage() {
   const [form, setForm] = useState<ExpenseForm>(emptyForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [quickRow, setQuickRow] = useState<QuickRow>({ date: todayStr(), categoryId: '', amount: '', description: '' });
+  const [isQuickSaving, setIsQuickSaving] = useState(false);
 
   useEffect(() => { loadCategories(); loadExpenses(); }, []);
 
@@ -124,6 +133,25 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleQuickAdd() {
+    if (!quickRow.categoryId || !quickRow.amount || Number(quickRow.amount) < 1) return;
+    setIsQuickSaving(true);
+    try {
+      await api.post('/expenses', {
+        date: quickRow.date,
+        categoryId: quickRow.categoryId,
+        amount: Number(quickRow.amount),
+        description: quickRow.description,
+      });
+      setQuickRow({ date: todayStr(), categoryId: '', amount: '', description: '' });
+      loadExpenses();
+    } catch {
+      showToast('Failed to add expense', 'error');
+    } finally {
+      setIsQuickSaving(false);
+    }
+  }
+
   const activeCategories = categories.filter(c =>
     c.isActive || (editingExpense && editingExpense.categoryId === c.id)
   );
@@ -189,7 +217,9 @@ export default function ExpensesPage() {
               ) : (
                 expenses.map(exp => (
                   <tr key={exp.id}>
-                    <td>{fmtDate(exp.date)}</td>
+                    <td style={{ borderLeft: `3px solid ${exp.category?.color || 'transparent'}` }}>
+                      {fmtDate(exp.date)}
+                    </td>
                     <td>
                       <span className="cat-badge" style={{ backgroundColor: exp.category?.color }}>
                         {exp.category?.name}
@@ -228,6 +258,60 @@ export default function ExpensesPage() {
                   </tr>
                 ))
               )}
+              {/* Quick-add row — spreadsheet-style inline entry */}
+              <tr className={styles.quickAddRow}>
+                <td style={{ borderLeft: '3px solid var(--border)' }}>
+                  <input
+                    className={styles.quickInput}
+                    type="date"
+                    value={quickRow.date}
+                    onChange={e => setQuickRow(r => ({ ...r, date: e.target.value }))}
+                  />
+                </td>
+                <td>
+                  <select
+                    className={styles.quickInput}
+                    value={quickRow.categoryId}
+                    onChange={e => setQuickRow(r => ({ ...r, categoryId: e.target.value }))}
+                  >
+                    <option value="">Select category…</option>
+                    {categories.filter(c => c.isActive).map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    className={styles.quickInput}
+                    type="number"
+                    min="1"
+                    placeholder="Amount (₹)"
+                    value={quickRow.amount}
+                    onChange={e => setQuickRow(r => ({ ...r, amount: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickAdd(); }}
+                  />
+                </td>
+                <td>
+                  <input
+                    className={styles.quickInput}
+                    type="text"
+                    placeholder="Description (optional)"
+                    value={quickRow.description}
+                    onChange={e => setQuickRow(r => ({ ...r, description: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickAdd(); }}
+                  />
+                </td>
+                <td>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleQuickAdd}
+                    disabled={isQuickSaving || !quickRow.categoryId || !quickRow.amount}
+                    title="Add expense (Enter)"
+                  >
+                    {isQuickSaving ? <span className="spinner spinner-sm" /> : '+'}
+                  </button>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>

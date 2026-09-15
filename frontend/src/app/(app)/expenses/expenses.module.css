@@ -9,3 +9,25 @@
   display: flex;
   gap: 4px;
 }
+
+.quickAddRow td {
+  background: var(--bg-hover, rgba(99, 102, 241, 0.04));
+  padding-block: 6px;
+}
+
+.quickInput {
+  width: 100%;
+  font-size: 0.82rem;
+  font-family: inherit;
+  background: var(--bg-secondary, var(--bg));
+  color: var(--text-primary, var(--text));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  outline: none;
+}
+
+.quickInput:focus {
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #6366f1) 20%, transparent);
+}
