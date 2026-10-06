@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './reports.module.css';
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
 
 function exportCsv(allExpenses: any[], year: number) {
   const rows = [
@@ -29,6 +26,7 @@ function exportCsv(allExpenses: any[], year: number) {
 }
 
 export default function ReportsPage() {
+  const { formatCurrency, currency } = useSettings();
   const [year, setYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -83,7 +81,7 @@ export default function ReportsPage() {
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
               <div className={styles.summaryLabel}>Annual Total</div>
-              <div className={styles.summaryValue}>{fmt(annualTotal)}</div>
+              <div className={styles.summaryValue}>{formatCurrency(annualTotal)}</div>
             </div>
             <div className={styles.summaryCard}>
               <div className={styles.summaryLabel}>Active Months</div>
@@ -91,7 +89,7 @@ export default function ReportsPage() {
             </div>
             <div className={styles.summaryCard}>
               <div className={styles.summaryLabel}>Avg / Active Month</div>
-              <div className={styles.summaryValue}>{fmt(avgMonthly)}</div>
+              <div className={styles.summaryValue}>{formatCurrency(avgMonthly)}</div>
             </div>
           </div>
 
@@ -111,14 +109,14 @@ export default function ReportsPage() {
                     <tr key={m.monthNum} className={m.total === 0 ? styles.zeroRow : ''}>
                       <td className="fw-500">{m.month} {m.year}</td>
                       <td className="fw-600" style={{ color: m.total > 0 ? 'var(--red)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                        {m.total > 0 ? fmt(m.total) : '—'}
+                        {m.total > 0 ? formatCurrency(m.total) : '—'}
                       </td>
                       <td style={{ fontVariantNumeric: 'tabular-nums' }}>{m.count > 0 ? m.count : '—'}</td>
                       <td>
                         {m.topCategory ? (
                           <span>
                             <span className="fw-500">{m.topCategory.name}</span>
-                            <span className="text-muted" style={{ fontSize: '0.8rem', marginLeft: 6 }}>({fmt(m.topCategory.amount)})</span>
+                            <span className="text-muted" style={{ fontSize: '0.8rem', marginLeft: 6 }}>({formatCurrency(m.topCategory.amount)})</span>
                           </span>
                         ) : '—'}
                       </td>

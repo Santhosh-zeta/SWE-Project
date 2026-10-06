@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './settings.module.css';
 
 export default function SettingsPage() {
   const { currentUser, refreshUser } = useAuth();
+  const { theme, toggleTheme, currency, setCurrency } = useSettings();
   const showToast = useToast();
 
   const [form, setForm] = useState({
@@ -136,6 +138,56 @@ export default function SettingsPage() {
             </div>
           </form>
         )}
+      </div>
+
+      {/* Application Preferences Card */}
+      <div className={`card ${styles.settingsCard}`} style={{ marginTop: 24 }}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>App Preferences</h2>
+          <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+            Customize your visual theme and currency display
+          </p>
+        </div>
+
+        <div className={styles.form}>
+          <div className={styles.twoCol}>
+            <div className="form-group">
+              <label className="form-label">Theme Mode</label>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  className={`btn ${theme === 'dark' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => { if (theme !== 'dark') toggleTheme(); }}
+                >
+                  🌙 Dark Mode
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${theme === 'light' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => { if (theme !== 'light') toggleTheme(); }}
+                >
+                  ☀️ Light Mode
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Preferred Currency</label>
+              <select
+                className="form-select"
+                value={currency}
+                onChange={e => setCurrency(e.target.value as any)}
+              >
+                <option value="INR">₹ INR (Indian Rupee)</option>
+                <option value="USD">$ USD (US Dollar)</option>
+                <option value="EUR">€ EUR (Euro)</option>
+                <option value="GBP">£ GBP (British Pound)</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

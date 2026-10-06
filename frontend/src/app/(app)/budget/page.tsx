@@ -3,11 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './budget.module.css';
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
 
 function nowYearMonth() {
   const n = new Date();
@@ -15,6 +12,7 @@ function nowYearMonth() {
 }
 
 export default function BudgetPage() {
+  const { formatCurrency, currencySymbol } = useSettings();
   const showToast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<any>(null);
@@ -122,7 +120,7 @@ export default function BudgetPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="fw-600">{fmt(cat.configuredAmount)}</span>
+              <span className="fw-600">{formatCurrency(cat.configuredAmount)}</span>
               <button
                 className="btn-icon"
                 style={{ padding: 4 }}
@@ -138,7 +136,7 @@ export default function BudgetPage() {
           )}
         </td>
         <td>
-          <span style={{ color: cat.spent > 0 ? 'var(--red)' : 'var(--text-muted)' }}>{fmt(cat.spent)}</span>
+          <span style={{ color: cat.spent > 0 ? 'var(--red)' : 'var(--text-muted)' }}>{formatCurrency(cat.spent)}</span>
         </td>
         <td className={styles.progressCell}>
           {cat.type === 'FIXED' ? (
@@ -149,7 +147,7 @@ export default function BudgetPage() {
                 <span style={{ color: over ? 'var(--red)' : 'var(--text-muted)' }}>
                   {over ? `${Math.round(pct)}% — over budget` : `${Math.round(pct)}%`}
                 </span>
-                <span className="text-muted">{fmt(Math.max(cat.configuredAmount - cat.spent, 0))} left</span>
+                <span className="text-muted">{formatCurrency(Math.max(cat.configuredAmount - cat.spent, 0))} left</span>
               </div>
               <div className="progress-bar-track">
                 <div className={`progress-bar-fill${over ? ' danger' : ''}`} style={{ width: `${pct}%` }} />
@@ -181,15 +179,15 @@ export default function BudgetPage() {
       <div className={styles.summaryRow}>
         <div className={styles.summaryCard}>
           <div className={styles.summaryLabel}>Monthly Salary</div>
-          <div className={styles.summaryValue}>{fmt(summary.salary)}</div>
+          <div className={styles.summaryValue}>{formatCurrency(summary.salary)}</div>
         </div>
         <div className={styles.summaryCard}>
           <div className={styles.summaryLabel}>Total Fixed Planned</div>
-          <div className={styles.summaryValue}>{fmt(totalFixedPlanned)}</div>
+          <div className={styles.summaryValue}>{formatCurrency(totalFixedPlanned)}</div>
         </div>
         <div className={styles.summaryCard}>
           <div className={styles.summaryLabel}>Monthly Budgets</div>
-          <div className={styles.summaryValue}>{fmt(totalMonthlyBudget)}</div>
+          <div className={styles.summaryValue}>{formatCurrency(totalMonthlyBudget)}</div>
         </div>
       </div>
 

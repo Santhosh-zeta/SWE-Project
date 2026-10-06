@@ -3,12 +3,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { useSettings } from '@/context/SettingsContext';
 import Modal from '@/components/Modal';
 import styles from './categories.module.css';
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
 
 interface CategoryForm {
   name: string;
@@ -27,6 +24,7 @@ const emptyForm: CategoryForm = {
 };
 
 export default function CategoriesPage() {
+  const { formatCurrency, currencySymbol } = useSettings();
   const showToast = useToast();
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -183,7 +181,7 @@ export default function CategoriesPage() {
                         {typeLabel[cat.type] ?? cat.type}
                       </span>
                     </td>
-                    <td>{fmt(cat.configuredAmount)}</td>
+                    <td>{formatCurrency(cat.configuredAmount)}</td>
                     <td>
                       <span className={`badge ${cat.isActive ? 'badge-active' : 'badge-inactive'}`}>
                         {cat.isActive ? 'Active' : 'Archived'}

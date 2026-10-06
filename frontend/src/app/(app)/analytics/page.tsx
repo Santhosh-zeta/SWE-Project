@@ -3,20 +3,18 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './analytics.module.css';
 
 // Dynamic import to avoid SSR issues with Chart.js
-const Pie = dynamic(() => import('react-chartjs-2').then(m => m.Pie), { ssr: false });
+const Doughnut = dynamic(() => import('react-chartjs-2').then(m => m.Doughnut), { ssr: false });
+const Bar = dynamic(() => import('react-chartjs-2').then(m => m.Bar), { ssr: false });
 
 // Register Chart.js pieces
 if (typeof window !== 'undefined') {
   Promise.all([
     import('chart.js/auto'),
   ]);
-}
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }
 
 type Period = 'currentMonth' | 'previousMonth' | 'last3Months' | 'last6Months' | 'currentYear' | 'custom';
@@ -62,11 +60,13 @@ function getDateRange(period: Period, from: string, to: string): { from: string;
 }
 
 export default function AnalyticsPage() {
+  const { theme, formatCurrency } = useSettings();
   const [period, setPeriod] = useState<Period>('currentMonth');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [monthlyTrend, setMonthlyTrend] = useState<any>(null);
 
   function fetchAnalytics(from: string, to: string) {
     setIsLoading(true);
@@ -81,32 +81,81 @@ export default function AnalyticsPage() {
     if (range) fetchAnalytics(range.from, range.to);
   }, [period, fromDate, toDate]);
 
-  const chartData = data && data.totalSpent > 0 ? {
+  useEffect(() => {
+    // Load 12-month report data for spending trend bar chart
+    api.get(`/reports/monthly?year=${new Date().getFullYear()}`)
+      .then(res => setMonthlyTrend(res.data))
+      .catch(() => {});
+  }, []);
+
+  const textColor = theme === 'dark' ? '#94a3b8' : '#64748b';
+  const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+  const doughnutData = data && data.totalSpent > 0 ? {
     labels: data.categoryTotals.map((c: any) => c.name),
     datasets: [{
       data: data.categoryTotals.map((c: any) => c.spent),
       backgroundColor: data.categoryTotals.map((c: any) => c.color),
-      borderColor: 'transparent',
-      hoverOffset: 8,
+      borderColor: theme === 'dark' ? '#182032' : '#ffffff',
+      borderWidth: 2,
+      hoverOffset: 6,
     }],
   } : null;
 
-  const chartOptions = {
+  const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: '68%',
     plugins: {
       legend: {
         display: true,
         position: 'right' as const,
         labels: {
-          color: '#94a3b8',
-          padding: 16,
+          color: textColor,
+          padding: 14,
           font: { size: 12, family: 'Inter' },
         },
       },
       tooltip: {
         callbacks: {
-          label: (ctx: any) => ` ${fmt(ctx.raw)}`,
+          label: (ctx: any) => ` ${formatCurrency(ctx.raw)}`,
+        },
+      },
+    },
+  };
+
+  const trendBarData = monthlyTrend && monthlyTrend.months ? {
+    labels: monthlyTrend.months.map((m: any) => m.month),
+    datasets: [{
+      label: 'Monthly Spending',
+      data: monthlyTrend.months.map((m: any) => m.total),
+      backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.75)' : 'rgba(79, 70, 229, 0.8)',
+      borderRadius: 6,
+    }],
+  } : null;
+
+  const trendBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => ` Total: ${formatCurrency(ctx.raw)}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: textColor, font: { size: 11, family: 'Inter' } },
+      },
+      y: {
+        grid: { color: gridColor },
+        ticks: {
+          color: textColor,
+          font: { size: 11, family: 'Inter' },
+          callback: (val: any) => formatCurrency(val),
         },
       },
     },
@@ -164,57 +213,76 @@ export default function AnalyticsPage() {
       {isLoading ? (
         <div className={styles.loadingState}><div className="spinner" /></div>
       ) : data && (
-        <div className={styles.grid}>
-          {/* Doughnut Chart */}
-          <div className="card">
-            <div className={styles.chartHeader}>
-              <h2 className={styles.sectionTitle}>Spending by Category</h2>
-              {data.totalSpent > 0 && (
-                <span className={styles.totalBadge}>Total: {fmt(data.totalSpent)}</span>
-              )}
+        <>
+          <div className={styles.grid}>
+            {/* Doughnut Chart */}
+            <div className="card">
+              <div className={styles.chartHeader}>
+                <h2 className={styles.sectionTitle}>Spending by Category</h2>
+                {data.totalSpent > 0 && (
+                  <span className={styles.totalBadge}>Total: {formatCurrency(data.totalSpent)}</span>
+                )}
+              </div>
+              <div className={styles.chartArea}>
+                {data.totalSpent === 0 ? (
+                  <div className={styles.emptyChart}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ color: 'var(--text-muted)' }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <p className="text-muted">No expenses recorded for this period.</p>
+                    <p className="text-muted" style={{ fontSize: '0.8rem' }}>Add expenses to see your spending analysis.</p>
+                  </div>
+                ) : doughnutData ? (
+                  <Doughnut data={doughnutData} options={doughnutOptions} />
+                ) : null}
+              </div>
             </div>
-            <div className={styles.chartArea}>
+
+            {/* Breakdown */}
+            <div className="card">
+              <h2 className={styles.sectionTitle} style={{ marginBottom: 20 }}>Category Breakdown</h2>
               {data.totalSpent === 0 ? (
-                <div className={styles.emptyChart}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ color: 'var(--text-muted)' }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <p className="text-muted">No expenses recorded for this period.</p>
-                  <p className="text-muted" style={{ fontSize: '0.8rem' }}>Add expenses to see your spending analysis.</p>
+                <p className="text-muted" style={{ textAlign: 'center', padding: '32px 0' }}>No data available.</p>
+              ) : (
+                <div className={styles.breakdownList}>
+                  {data.categoryTotals.map((cat: any, i: number) => (
+                    <div key={i} className={styles.breakdownItem}>
+                      <div className={styles.breakdownLeft}>
+                        <span className="color-dot" style={{ backgroundColor: cat.color }} />
+                        <span className="fw-500">{cat.name}</span>
+                      </div>
+                      <div className={styles.breakdownRight}>
+                        <span className="fw-600">{formatCurrency(cat.spent)}</span>
+                        <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                          {cat.percentage?.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : chartData ? (
-                <Pie data={chartData} options={chartOptions} />
-              ) : null}
+              )}
             </div>
           </div>
 
-          {/* Breakdown */}
-          <div className="card">
-            <h2 className={styles.sectionTitle} style={{ marginBottom: 20 }}>Category Breakdown</h2>
-            {data.totalSpent === 0 ? (
-              <p className="text-muted" style={{ textAlign: 'center', padding: '32px 0' }}>No data available.</p>
-            ) : (
-              <div className={styles.breakdownList}>
-                {data.categoryTotals.map((cat: any, i: number) => (
-                  <div key={i} className={styles.breakdownItem}>
-                    <div className={styles.breakdownLeft}>
-                      <span className="color-dot" style={{ backgroundColor: cat.color }} />
-                      <span className="fw-500">{cat.name}</span>
-                    </div>
-                    <div className={styles.breakdownRight}>
-                      <span className="fw-600">{fmt(cat.spent)}</span>
-                      <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                        {cat.percentage?.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
+          {/* Monthly Trend Bar Chart */}
+          {trendBarData && (
+            <div className="card" style={{ marginTop: 24 }}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h2 className={styles.sectionTitle}>Annual Spending Velocity ({new Date().getFullYear()})</h2>
+                  <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+                    Month-by-month spending trend across the entire calendar year
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+              <div style={{ height: 260, marginTop: 16 }}>
+                <Bar data={trendBarData} options={trendBarOptions} />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

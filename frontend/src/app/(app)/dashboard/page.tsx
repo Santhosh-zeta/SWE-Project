@@ -3,17 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useSettings } from '@/context/SettingsContext';
 import styles from './dashboard.module.css';
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function DashboardPage() {
+  const { formatCurrency } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [summaryData, setSummaryData] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,7 +54,22 @@ export default function DashboardPage() {
 
   if (!summaryData) return null;
 
-  const remaining = summaryData.remaining ?? 0;
+  const salary = Number(summaryData.salary) || 0;
+  const totalSpent = Number(summaryData.totalSpent) || 0;
+  const remaining = summaryData.remaining ?? (salary - totalSpent);
+  
+  // Advanced KPIs
+  const savingsRate = salary > 0 ? Math.max(0, Math.round((remaining / salary) * 100)) : 0;
+  
+  // Days in selected month & burn rate
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const isCurrentViewingMonth = currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+  const currentDayElapsed = isCurrentViewingMonth ? Math.max(1, new Date().getDate()) : daysInMonth;
+  const dailyBurnRate = Math.round(totalSpent / currentDayElapsed);
+  const dailyBudgetAllowance = Math.round(salary / daysInMonth);
+
+  // Check over-budget categories
+  const overBudgetCats = (summaryData.categories || []).filter((c: any) => (c.percentage ?? 0) > 100);
 
   return (
     <div className="fade-in">
@@ -78,6 +91,33 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Smart Alert Banner */}
+      {overBudgetCats.length > 0 ? (
+        <div className={`${styles.alertBanner} ${styles.alertDanger}`}>
+          <span>
+            ⚠️ <strong>Attention:</strong> {overBudgetCats.length} categor{overBudgetCats.length > 1 ? 'ies have' : 'y has'} exceeded configured limits ({overBudgetCats.map((c: any) => c.name).join(', ')}).
+          </span>
+          <Link href="/budget" className="btn btn-sm btn-danger" style={{ background: 'var(--red)', color: 'white' }}>
+            Review Budget
+          </Link>
+        </div>
+      ) : remaining < 0 ? (
+        <div className={`${styles.alertBanner} ${styles.alertDanger}`}>
+          <span>
+            🚨 <strong>Critical:</strong> Total expenses have exceeded your monthly salary by {formatCurrency(Math.abs(remaining))}.
+          </span>
+          <Link href="/expenses" className="btn btn-sm btn-ghost">
+            View Expenses
+          </Link>
+        </div>
+      ) : savingsRate >= 30 ? (
+        <div className={`${styles.alertBanner} ${styles.alertSuccess}`}>
+          <span>
+            🎉 <strong>Healthy Budget:</strong> You are currently saving {savingsRate}% of your monthly income. Keep it up!
+          </span>
+        </div>
+      ) : null}
+
       {/* Summary Cards */}
       <div className={styles.summaryCards}>
         <div className={`${styles.summaryCard} ${styles.salaryCard}`}>
@@ -89,7 +129,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className={styles.cardLabel}>Monthly Salary</p>
-            <p className={styles.cardValue}>{fmt(summaryData.salary)}</p>
+            <p className={styles.cardValue}>{formatCurrency(summaryData.salary)}</p>
           </div>
         </div>
 
@@ -103,7 +143,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className={styles.cardLabel}>Total Spent</p>
-            <p className={`${styles.cardValue} ${styles.expenseColor}`}>{fmt(summaryData.totalSpent)}</p>
+            <p className={`${styles.cardValue} ${styles.expenseColor}`}>{formatCurrency(summaryData.totalSpent)}</p>
           </div>
         </div>
 
@@ -116,8 +156,40 @@ export default function DashboardPage() {
           <div>
             <p className={styles.cardLabel}>Remaining</p>
             <p className={`${styles.cardValue} ${remaining >= 0 ? styles.incomeColor : styles.expenseColor}`}>
-              {fmt(remaining)}
+              {formatCurrency(remaining)}
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced KPI Cards */}
+      <div className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}>📊</div>
+          <div>
+            <div className={styles.kpiLabel}>Savings Rate</div>
+            <div className={styles.kpiValue} style={{ color: savingsRate >= 20 ? 'var(--green)' : 'var(--yellow)' }}>
+              {savingsRate}%
+            </div>
+            <div className={styles.kpiSubtext}>Target: ≥ 20% of income</div>
+          </div>
+        </div>
+
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}>⚡</div>
+          <div>
+            <div className={styles.kpiLabel}>Avg Daily Spend</div>
+            <div className={styles.kpiValue}>{formatCurrency(dailyBurnRate)}</div>
+            <div className={styles.kpiSubtext}>Allowance: {formatCurrency(dailyBudgetAllowance)}/day</div>
+          </div>
+        </div>
+
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiIcon}>🎯</div>
+          <div>
+            <div className={styles.kpiLabel}>Planned Fixed Bills</div>
+            <div className={styles.kpiValue}>{formatCurrency(summaryData.fixedPlanned || 0)}</div>
+            <div className={styles.kpiSubtext}>Rent & utilities allocated</div>
           </div>
         </div>
       </div>
@@ -153,13 +225,13 @@ export default function DashboardPage() {
                       </span>
                       {cat.type !== 'FIXED' && (
                         <span className={over ? styles.overBudget : styles.catAmount}>
-                          {fmt(cat.spent)} / {fmt(cat.configuredAmount)}
+                          {formatCurrency(cat.spent)} / {formatCurrency(cat.configuredAmount)}
                           {' '}<span className={over ? styles.overBudget : ''}>({Math.round(cat.percentage ?? 0)}%)</span>
                         </span>
                       )}
                       {cat.type === 'FIXED' && (
                         <span className={styles.catAmount}>
-                          Spent: {fmt(cat.spent)} | Planned: {fmt(cat.configuredAmount)}
+                          Spent: {formatCurrency(cat.spent)} | Planned: {formatCurrency(cat.configuredAmount)}
                         </span>
                       )}
                     </div>
@@ -173,7 +245,7 @@ export default function DashboardPage() {
                     )}
                     {over && (
                       <p className={styles.overBudget} style={{ fontSize: '0.75rem', marginTop: 4 }}>
-                        {fmt(cat.spent - cat.configuredAmount)} over budget
+                        {formatCurrency(cat.spent - cat.configuredAmount)} over budget
                       </p>
                     )}
                   </div>
@@ -211,7 +283,7 @@ export default function DashboardPage() {
                     <span className={styles.expDate}>{fmtDate(exp.date)}</span>
                   </div>
                   <span className={`${styles.expAmount} ${styles.expenseColor}`}>
-                    {fmt(exp.amount)}
+                    {formatCurrency(exp.amount)}
                   </span>
                 </div>
               ))}

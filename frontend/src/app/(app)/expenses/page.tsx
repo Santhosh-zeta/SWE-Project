@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { useSettings } from '@/context/SettingsContext';
 import Modal from '@/components/Modal';
 import styles from './expenses.module.css';
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-}
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -35,6 +33,7 @@ interface QuickRow {
 }
 
 export default function ExpensesPage() {
+  const { formatCurrency, currencySymbol } = useSettings();
   const showToast = useToast();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -128,7 +127,7 @@ export default function ExpensesPage() {
   }
 
   async function handleDelete(expense: any) {
-    if (!confirm(`Delete expense of ${fmt(expense.amount)} for ${expense.category?.name}?`)) return;
+    if (!confirm(`Delete expense of ${formatCurrency(expense.amount)} for ${expense.category?.name}?`)) return;
     try {
       await api.delete(`/expenses/${expense.id}`);
       showToast('Expense deleted', 'success');
@@ -240,7 +239,7 @@ export default function ExpensesPage() {
                         {exp.category?.name}
                       </span>
                     </td>
-                    <td className="fw-600" style={{ color: 'var(--red)' }}>{fmt(exp.amount)}</td>
+                    <td className="fw-600" style={{ color: 'var(--red)' }}>{formatCurrency(exp.amount)}</td>
                     <td className="text-muted">{exp.description || '—'}</td>
                     <td>
                       <div className={styles.actions}>
