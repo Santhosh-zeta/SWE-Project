@@ -1,24 +1,43 @@
 import request from 'supertest';
-import app from '../app';
 import { PrismaClient } from '@prisma/client';
 import { generateToken } from '../utils/jwt';
 
-const mPrismaClient = {
+const mockExpenseFindMany = jest.fn();
+const mockExpenseCount = jest.fn();
+const mockExpenseCreate = jest.fn();
+const mockExpenseFindFirst = jest.fn();
+const mockExpenseDelete = jest.fn();
+const mockCategoryFindFirst = jest.fn();
+
+const mockPrismaClient = {
   expense: {
-    findMany: jest.fn(),
-    count: jest.fn(),
-    create: jest.fn(),
-    findFirst: jest.fn(),
-    delete: jest.fn(),
+    findMany: mockExpenseFindMany,
+    count: mockExpenseCount,
+    create: mockExpenseCreate,
+    findFirst: mockExpenseFindFirst,
+    delete: mockExpenseDelete,
   },
   category: {
-    findFirst: jest.fn(),
+    findFirst: mockCategoryFindFirst,
   },
 };
 
 jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn(() => mPrismaClient),
+  PrismaClient: jest.fn().mockImplementation(() => ({
+    expense: {
+      findMany: (...args: any[]) => mockExpenseFindMany(...args),
+      count: (...args: any[]) => mockExpenseCount(...args),
+      create: (...args: any[]) => mockExpenseCreate(...args),
+      findFirst: (...args: any[]) => mockExpenseFindFirst(...args),
+      delete: (...args: any[]) => mockExpenseDelete(...args),
+    },
+    category: {
+      findFirst: (...args: any[]) => mockCategoryFindFirst(...args),
+    },
+  })),
 }));
+
+import app from '../app';
 
 describe('Expense Endpoints', () => {
   const token = generateToken(1); // User ID 1
@@ -30,10 +49,10 @@ describe('Expense Endpoints', () => {
 
   describe('GET /api/expenses', () => {
     it('should get expenses successfully', async () => {
-      mPrismaClient.expense.findMany.mockResolvedValue([
+      mockPrismaClient.expense.findMany.mockResolvedValue([
         { id: 1, amount: 100, description: 'Test', date: new Date() }
       ]);
-      mPrismaClient.expense.count.mockResolvedValue(1);
+      mockPrismaClient.expense.count.mockResolvedValue(1);
 
       const res = await request(app)
         .get('/api/expenses')
@@ -47,8 +66,8 @@ describe('Expense Endpoints', () => {
 
   describe('POST /api/expenses', () => {
     it('should create an expense if category is valid', async () => {
-      mPrismaClient.category.findFirst.mockResolvedValue({ id: 1, userId: 1 });
-      mPrismaClient.expense.create.mockResolvedValue({
+      mockPrismaClient.category.findFirst.mockResolvedValue({ id: 1, userId: 1 });
+      mockPrismaClient.expense.create.mockResolvedValue({
         id: 1,
         categoryId: 1,
         amount: 500,

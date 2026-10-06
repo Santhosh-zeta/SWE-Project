@@ -1,24 +1,41 @@
 import request from 'supertest';
-import app from '../app';
 import { PrismaClient } from '@prisma/client';
 import { generateToken } from '../utils/jwt';
 
-const mPrismaClient = {
+const mockUserFindUnique = jest.fn();
+const mockCategoryFindMany = jest.fn();
+const mockExpenseGroupBy = jest.fn();
+const mockExpenseFindMany = jest.fn();
+
+const mockPrismaClient = {
   user: {
-    findUnique: jest.fn(),
+    findUnique: mockUserFindUnique,
   },
   category: {
-    findMany: jest.fn(),
+    findMany: mockCategoryFindMany,
   },
   expense: {
-    groupBy: jest.fn(),
-    findMany: jest.fn(),
+    groupBy: mockExpenseGroupBy,
+    findMany: mockExpenseFindMany,
   },
 };
 
 jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn(() => mPrismaClient),
+  PrismaClient: jest.fn().mockImplementation(() => ({
+    user: {
+      findUnique: (...args: any[]) => mockUserFindUnique(...args),
+    },
+    category: {
+      findMany: (...args: any[]) => mockCategoryFindMany(...args),
+    },
+    expense: {
+      groupBy: (...args: any[]) => mockExpenseGroupBy(...args),
+      findMany: (...args: any[]) => mockExpenseFindMany(...args),
+    },
+  })),
 }));
+
+import app from '../app';
 
 describe('Dashboard Endpoints', () => {
   const token = generateToken(1);
@@ -30,20 +47,20 @@ describe('Dashboard Endpoints', () => {
 
   describe('GET /api/dashboard', () => {
     it('should calculate dashboard summary correctly', async () => {
-      mPrismaClient.user.findUnique.mockResolvedValue({ monthlySalary: 10000 });
+      mockPrismaClient.user.findUnique.mockResolvedValue({ monthlySalary: 10000 });
       
-      mPrismaClient.category.findMany.mockResolvedValue([
+      mockPrismaClient.category.findMany.mockResolvedValue([
         { id: 1, name: 'Rent', type: 'FIXED', configuredAmount: 3000, color: '#f00' },
         { id: 2, name: 'Food', type: 'MONTHLY_RESET', configuredAmount: 2000, color: '#0f0' },
       ]);
 
       // Mock spending: 3000 on Rent, 1500 on Food
-      mPrismaClient.expense.groupBy.mockResolvedValue([
+      mockPrismaClient.expense.groupBy.mockResolvedValue([
         { categoryId: 1, _sum: { amount: 3000 } },
         { categoryId: 2, _sum: { amount: 1500 } },
       ]);
 
-      mPrismaClient.expense.findMany.mockResolvedValue([]);
+      mockPrismaClient.expense.findMany.mockResolvedValue([]);
 
       const res = await request(app)
         .get('/api/dashboard')

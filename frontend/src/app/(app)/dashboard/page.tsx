@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className={styles.loadingState}>
+      <div className={styles.loadingState} role="status" aria-label="Loading">
         <div className="spinner" />
       </div>
     );

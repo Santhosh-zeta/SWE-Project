@@ -1,23 +1,41 @@
 import request from 'supertest';
-import app from '../app';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
-const mPrismaClient = {
+const mockUserFindUnique = jest.fn();
+const mockUserCreate = jest.fn();
+const mockCategoryCreateMany = jest.fn();
+
+const mockPrismaClient = {
   user: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
+    findUnique: mockUserFindUnique,
+    create: mockUserCreate,
+  },
+  category: {
+    createMany: mockCategoryCreateMany,
   },
 };
 
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn(() => mPrismaClient),
-}));
+jest.mock('@prisma/client', () => {
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      user: {
+        findUnique: (...args: any[]) => mockUserFindUnique(...args),
+        create: (...args: any[]) => mockUserCreate(...args),
+      },
+      category: {
+        createMany: (...args: any[]) => mockCategoryCreateMany(...args),
+      },
+    })),
+  };
+});
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),
   compare: jest.fn().mockResolvedValue(true),
 }));
+
+import app from '../app';
 
 describe('Auth Endpoints', () => {
   beforeEach(() => {
@@ -26,8 +44,8 @@ describe('Auth Endpoints', () => {
 
   describe('POST /api/auth/register', () => {
     it('should register a new user successfully', async () => {
-      mPrismaClient.user.findUnique.mockResolvedValue(null);
-      mPrismaClient.user.create.mockResolvedValue({
+      mockPrismaClient.user.findUnique.mockResolvedValue(null);
+      mockPrismaClient.user.create.mockResolvedValue({
         id: 1,
         name: 'Test User',
         email: 'test@example.com',
@@ -50,7 +68,7 @@ describe('Auth Endpoints', () => {
     });
 
     it('should fail if email already exists', async () => {
-      mPrismaClient.user.findUnique.mockResolvedValue({ id: 1 });
+      mockPrismaClient.user.findUnique.mockResolvedValue({ id: 1 });
 
       const res = await request(app).post('/api/auth/register').send({
         name: 'Test User',
@@ -68,7 +86,7 @@ describe('Auth Endpoints', () => {
 
   describe('POST /api/auth/login', () => {
     it('should login a user successfully', async () => {
-      mPrismaClient.user.findUnique.mockResolvedValue({
+      mockPrismaClient.user.findUnique.mockResolvedValue({
         id: 1,
         name: 'Test User',
         email: 'test@example.com',
@@ -88,7 +106,7 @@ describe('Auth Endpoints', () => {
     });
 
     it('should fail with invalid credentials', async () => {
-      mPrismaClient.user.findUnique.mockResolvedValue(null);
+      mockPrismaClient.user.findUnique.mockResolvedValue(null);
 
       const res = await request(app).post('/api/auth/login').send({
         email: 'wrong@example.com',

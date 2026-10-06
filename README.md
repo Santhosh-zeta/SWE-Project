@@ -82,44 +82,116 @@ Users can manage their monthly salary, configure fixed and monthly-reset expense
 | GET | `/api/analytics` | Spending by category for a date range (`from`, `to`) |
 | GET | `/api/reports/monthly` | Month-by-month summary for a given `year` |
 
-## Setup
+## Setup & Running the Project
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [PostgreSQL](https://www.postgresql.org/) running locally on port `5432`
 
-### Database
+---
+
+### Step 1: Database Setup
+
+Ensure PostgreSQL is running and create the database:
+
 ```bash
-# Create the database
+# Using PostgreSQL CLI
 createdb finance_tracker
 ```
+*(Or create a database named `finance_tracker` via pgAdmin / psql).*
 
-### Backend
-```bash
-cd backend
-cp .env.example .env          # Fill in DATABASE_URL and JWT_SECRET
-npm install
-npx prisma db push
-npx prisma generate
-npx ts-node seed.ts           # Optional: seed a demo user with default categories
-npm run dev                   # Starts on port 3000
-```
+---
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev                   # Starts on port 3001
-```
+### Step 2: Backend Setup & Launch
+
+1. Navigate to the `backend` directory:
+   ```bash
+   cd backend
+   ```
+
+2. Configure environment variables in `backend/.env`:
+   ```env
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_tracker?schema=public"
+   JWT_SECRET="supersecret_do_not_use_in_prod"
+   PORT=3000
+   FRONTEND_URL="http://localhost:3001"
+   ```
+   *(Update username and password in `DATABASE_URL` if your PostgreSQL credentials differ).*
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Push schema and generate Prisma client:
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
+
+5. (Optional) Seed demo user & initial categories:
+   ```bash
+   npx ts-node seed.ts
+   ```
+
+6. Start the backend development server:
+   ```bash
+   npm run dev
+   ```
+   The backend API will start on **`http://localhost:3000`** (Health check endpoint: `http://localhost:3000/api/health`).
+
+---
+
+### Step 3: Frontend Setup & Launch
+
+1. Open a new terminal and navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the frontend development server:
+   ```bash
+   npm run dev
+   ```
+   The frontend application will start on **`http://localhost:3001`**.
+
+4. Open your browser and visit:
+   **[http://localhost:3001](http://localhost:3001)**
+
+---
+
+### Running Tests
+
+- **Backend tests** (Jest):
+  ```bash
+  cd backend
+  npm test
+  ```
+
+- **Frontend tests** (Vitest):
+  ```bash
+  cd frontend
+  npm test
+  ```
+
+---
 
 ### Production Build
 
-**Backend**
-```bash
-cd backend && npx tsc
-```
+- **Backend compilation**:
+  ```bash
+  cd backend
+  npx tsc
+  ```
 
-**Frontend**
-```bash
-cd frontend && npm run build && npm start
-```
+- **Frontend build & start**:
+  ```bash
+  cd frontend
+  npm run build
+  npm start
+  ```

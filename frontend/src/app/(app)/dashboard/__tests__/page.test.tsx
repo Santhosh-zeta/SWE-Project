@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import '@testing-library/jest-dom';
 import DashboardPage from '../page';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +20,7 @@ describe('Dashboard Page', () => {
   it('renders loading state initially', () => {
     (api.get as unknown as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {})); // pending promise
     render(<DashboardPage />);
-    expect(screen.getByRole('status', { hidden: true }) || document.querySelector('.spinner')).toBeInTheDocument();
+    const spinner = screen.getByRole('status') || document.querySelector('.spinner');
+    expect(spinner).toBeTruthy();
   });
 });
