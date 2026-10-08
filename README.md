@@ -11,7 +11,8 @@ Users can manage their monthly salary, configure fixed and monthly-reset expense
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 15 (App Router), React 19, TypeScript, CSS Modules, Chart.js |
-| Backend | Node.js, Express.js |
+| Mobile | React Native (Expo), TypeScript, Android READ_SMS native permission |
+| Backend | Node.js, Express.js, Google Gemini AI (gemini-2.5-flash) |
 | Database | PostgreSQL |
 | ORM | Prisma |
 | Security | JWT Authentication, bcrypt, express-rate-limit, Helmet |
@@ -27,7 +28,8 @@ Users can manage their monthly salary, configure fixed and monthly-reset expense
 | Budget | `/budget` | Month-by-month budget view; inline editing of planned amounts per category |
 | Analytics | `/analytics` | Pie chart of spending distribution; custom date ranges |
 | Reports | `/reports` | Annual month-by-month summary table; one-click CSV export |
-| Settings | `/settings` | Update profile (name, age, monthly salary) |
+| SMS Sync (Gemini AI) | `/sms-sync` | AI-powered bank/UPI SMS expense extractor, merchant detector & category matching |
+| Settings | `/settings` | Update profile (name, age, monthly salary) & Gemini AI status |
 
 ## Requirements Coverage
 
@@ -81,6 +83,8 @@ Users can manage their monthly salary, configure fixed and monthly-reset expense
 | GET | `/api/dashboard` | Monthly summary with category stats and recent expenses |
 | GET | `/api/analytics` | Spending by category for a date range (`from`, `to`) |
 | GET | `/api/reports/monthly` | Month-by-month summary for a given `year` |
+| POST | `/api/sms/parse` | Parse raw/bulk SMS using Gemini AI & match user categories |
+| POST | `/api/sms/import` | Batch import parsed SMS expenses into the tracker |
 
 ## Setup & Running the Project
 
@@ -194,4 +198,11 @@ createdb finance_tracker
   cd frontend
   npm run build
   npm start
+  ```
+
+- **Mobile App (React Native with Native SMS Access)**:
+  ```bash
+  cd mobile
+  npm start
+  # Press 'a' for Android or scan QR code with Expo Go on your phone
   ```

@@ -189,6 +189,59 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Gemini AI Integration Card */}
+      <div className={`card ${styles.settingsCard}`} style={{ marginTop: 24 }}>
+        <div className={styles.cardHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span>Gemini AI Integration</span>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                  Connected & Ready
+                </span>
+              </h2>
+              <p className="text-muted" style={{ fontSize: '0.875rem', marginTop: 4 }}>
+                Powered by Google Gemini models for real-time mobile SMS transaction parsing &amp; category matching.
+              </p>
+            </div>
+            <a href="/sms-sync" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
+              Open SMS Sync →
+            </a>
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 24px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', margin: '0 24px 20px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active Model</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>Gemini 2.5 Flash / Flash Lite</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Feature Status</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#10b981', marginTop: 2 }}>SMS Sync Enabled</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Supported Merchants</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>Swiggy, Instamart, Zomato, Uber, UPI &amp; all Indian Banks</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

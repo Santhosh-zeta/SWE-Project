@@ -146,6 +146,18 @@
   box-shadow: 0 0 6px var(--accent-glow);
 }
 
+.navBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.3));
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  margin-left: auto;
+  letter-spacing: 0.04em;
+}
+
 .spacer {
   flex: 1;
 }

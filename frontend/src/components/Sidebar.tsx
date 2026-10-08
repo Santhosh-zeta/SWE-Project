@@ -29,6 +29,17 @@ const navItems = [
     ),
   },
   {
+    path: '/sms-sync',
+    label: 'SMS Sync',
+    badge: 'AI',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <path d="M8 10h.01M12 10h.01M16 10h.01" strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     path: '/categories',
     label: 'Categories',
     icon: (
@@ -131,7 +142,8 @@ export default function Sidebar() {
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span>{item.label}</span>
-              {isActive && <span className={styles.activeDot} />}
+              {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
+              {isActive && !item.badge && <span className={styles.activeDot} />}
             </Link>
           );
         })}
