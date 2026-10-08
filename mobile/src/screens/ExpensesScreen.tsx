@@ -36,10 +36,19 @@ export default function ExpensesScreen({ onGoToSms }: { onGoToSms: () => void })
     fetchExpenses();
   }
 
+  function getInitials(name: string): string {
+    const clean = (name || '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    const words = clean.split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase() || 'TX';
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator color="#6366f1" size="large" />
+        <ActivityIndicator color="#4F46E5" size="large" />
       </View>
     );
   }
@@ -48,9 +57,12 @@ export default function ExpensesScreen({ onGoToSms }: { onGoToSms: () => void })
     <View style={styles.container}>
       {/* Header bar */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>All Expenses ({expenses.length})</Text>
-        <TouchableOpacity style={styles.syncBtn} onPress={onGoToSms}>
-          <Text style={styles.syncBtnText}>⚡ Sync SMS</Text>
+        <View>
+          <Text style={styles.title}>Expenses</Text>
+          <Text style={styles.subtitle}>{expenses.length} recorded transactions</Text>
+        </View>
+        <TouchableOpacity style={styles.syncBtn} onPress={onGoToSms} activeOpacity={0.8}>
+          <Text style={styles.syncBtnText}>+ Sync SMS</Text>
         </TouchableOpacity>
       </View>
 
@@ -58,20 +70,31 @@ export default function ExpensesScreen({ onGoToSms }: { onGoToSms: () => void })
         data={expenses}
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4F46E5" />}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No expenses logged yet.</Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={onGoToSms}>
-              <Text style={styles.emptyBtnText}>Sync your first SMS</Text>
+            <Text style={styles.emptyTitle}>No transactions recorded</Text>
+            <Text style={styles.emptySubtitle}>
+              Sync your bank SMS notifications or log expenses to populate this ledger.
+            </Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={onGoToSms} activeOpacity={0.85}>
+              <Text style={styles.emptyBtnText}>Sync SMS Statements</Text>
             </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => {
           const category = item.category || {};
-          const catColor = category.color || '#6366f1';
+          const catColor = category.color || '#4F46E5';
+          const initials = getInitials(item.description || 'Expense');
+          const amount = Number(item.amount) || 0;
+
           return (
-            <View style={[styles.expenseItem, { borderLeftColor: catColor }]}>
+            <View style={styles.expenseItem}>
+              <View style={[styles.avatarBox, { borderColor: catColor + '40' }]}>
+                <Text style={[styles.avatarText, { color: catColor }]}>{initials}</Text>
+              </View>
+
               <View style={styles.itemLeft}>
                 <Text style={styles.itemTitle} numberOfLines={1}>
                   {item.description || 'Expense'}
@@ -87,7 +110,7 @@ export default function ExpensesScreen({ onGoToSms }: { onGoToSms: () => void })
               </View>
 
               <Text style={styles.itemAmount}>
-                ₹{Number(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                - ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
             </View>
           );
@@ -100,91 +123,119 @@ export default function ExpensesScreen({ onGoToSms }: { onGoToSms: () => void })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
-  headerTitle: {
-    fontSize: 16,
+  title: {
+    fontSize: 24,
     fontWeight: '700',
-    color: '#f8fafc',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#8A94A6',
+    marginTop: 2,
   },
   syncBtn: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   syncBtnText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 90,
   },
   expenseItem: {
-    backgroundColor: '#131926',
-    borderRadius: 12,
+    backgroundColor: '#121722',
+    borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderLeftWidth: 4,
+    gap: 12,
+  },
+  avatarBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#1A2130',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  avatarText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   itemLeft: {
     flex: 1,
-    marginRight: 10,
   },
   itemTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f8fafc',
-    marginBottom: 4,
+    color: '#F8FAFC',
+    marginBottom: 2,
   },
   itemDate: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 11,
+    color: '#64748B',
   },
   itemAmount: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#10b981',
+    color: '#F1F5F9',
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 64,
+    paddingHorizontal: 20,
   },
-  emptyText: {
-    color: '#64748b',
-    fontSize: 14,
-    marginBottom: 14,
+  emptyTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
   },
   emptyBtn: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 16,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
   },
   emptyBtnText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
   },

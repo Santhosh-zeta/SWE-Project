@@ -15,12 +15,12 @@ import SmsSyncScreen from './src/screens/SmsSyncScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import ExpensesScreen from './src/screens/ExpensesScreen';
 
-type Tab = 'sms' | 'dashboard' | 'expenses';
+type Tab = 'dashboard' | 'sms' | 'expenses';
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('sms');
+  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function App() {
   if (!ready) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
@@ -55,64 +55,72 @@ export default function App() {
     <View style={styles.appContainer}>
       <StatusBar style="light" />
 
-      {/* Top Header */}
+      {/* Clean Minimalist Header */}
       <View style={styles.topHeader}>
-        <View style={styles.headerBrandRow}>
-          <Text style={styles.headerLogo}>💎</Text>
-          <Text style={styles.headerTitle}>FinanceTracker</Text>
-          <View style={styles.aiTag}>
-            <Text style={styles.aiTagText}>Gemini AI</Text>
-          </View>
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark} />
+          <Text style={styles.brandText}>Finance</Text>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Main Screen Content */}
+      {/* Screen View */}
       <View style={styles.content}>
-        {activeTab === 'sms' && (
-          <SmsSyncScreen onRefresh={() => setRefreshKey(k => k + 1)} />
-        )}
         {activeTab === 'dashboard' && (
           <DashboardScreen key={refreshKey} onGoToSms={() => setActiveTab('sms')} />
+        )}
+        {activeTab === 'sms' && (
+          <SmsSyncScreen onRefresh={() => setRefreshKey(k => k + 1)} />
         )}
         {activeTab === 'expenses' && (
           <ExpensesScreen key={refreshKey} onGoToSms={() => setActiveTab('sms')} />
         )}
       </View>
 
-      {/* Bottom Tab Bar */}
+      {/* Clean Bottom Navigation Bar */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'sms' && styles.tabButtonActive]}
-          onPress={() => setActiveTab('sms')}
-        >
-          <Text style={styles.tabIcon}>⚡</Text>
-          <Text style={[styles.tabLabel, activeTab === 'sms' && styles.tabLabelActive]}>
-            SMS Sync
-          </Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'dashboard' && styles.tabButtonActive]}
           onPress={() => setActiveTab('dashboard')}
+          activeOpacity={0.8}
         >
-          <Text style={styles.tabIcon}>📊</Text>
-          <Text style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}>
+          <Text
+            style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}
+          >
             Dashboard
           </Text>
+          {activeTab === 'dashboard' && <View style={styles.activeDot} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'sms' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('sms')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.tabLabel, activeTab === 'sms' && styles.tabLabelActive]}>
+            SMS Sync
+          </Text>
+          {activeTab === 'sms' && <View style={styles.activeDot} />}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'expenses' && styles.tabButtonActive]}
           onPress={() => setActiveTab('expenses')}
+          activeOpacity={0.8}
         >
-          <Text style={styles.tabIcon}>💳</Text>
-          <Text style={[styles.tabLabel, activeTab === 'expenses' && styles.tabLabelActive]}>
+          <Text
+            style={[styles.tabLabel, activeTab === 'expenses' && styles.tabLabelActive]}
+          >
             Expenses
           </Text>
+          {activeTab === 'expenses' && <View style={styles.activeDot} />}
         </TouchableOpacity>
       </View>
     </View>
@@ -122,94 +130,88 @@ export default function App() {
 const styles = StyleSheet.create({
   appContainer: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
     paddingTop: Platform.OS === 'android' ? (StatusBarNative.currentHeight || 28) : 44,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: '#0e1320',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: '#090D16',
   },
-  headerBrandRow: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerLogo: {
-    fontSize: 18,
+  brandMark: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4F46E5',
   },
-  headerTitle: {
+  brandText: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#f8fafc',
+    fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
-  aiTag: {
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
+  signOutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#121722',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  aiTagText: {
-    color: '#818cf8',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  logoutBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  logoutText: {
-    color: '#94a3b8',
+  signOutText: {
+    color: '#94A3B8',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   content: {
     flex: 1,
   },
   bottomBar: {
     flexDirection: 'row',
-    backgroundColor: '#0e1320',
+    backgroundColor: '#0D111C',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 8,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 12,
     paddingBottom: Platform.OS === 'android' ? 14 : 20,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    gap: 4,
   },
-  tabButtonActive: {
-    transform: [{ scale: 1.05 }],
-  },
-  tabIcon: {
-    fontSize: 20,
-    marginBottom: 3,
-  },
+  tabButtonActive: {},
   tabLabel: {
-    fontSize: 11,
-    color: '#64748b',
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   tabLabelActive: {
-    color: '#818cf8',
+    color: '#FFFFFF',
     fontWeight: '700',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#4F46E5',
+    marginTop: 2,
   },
 });

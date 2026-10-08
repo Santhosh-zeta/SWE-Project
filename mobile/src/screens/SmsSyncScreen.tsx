@@ -7,14 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import {
   readDeviceSms,
   readClipboardSms,
   analyzeSmsMessages,
-  checkSmsPermission,
-  requestSmsPermission,
   DeviceSmsMessage,
 } from '../services/smsService';
 
@@ -23,61 +20,63 @@ interface SelectableMessage extends DeviceSmsMessage {
   selected: boolean;
 }
 
-function getMerchantIcon(name: string): string {
-  const lower = (name || '').toLowerCase();
-  if (lower.includes('instamart') || lower.includes('blinkit') || lower.includes('zepto') || lower.includes('grocer')) return '🛒';
-  if (lower.includes('swiggy') || lower.includes('zomato') || lower.includes('food')) return '🍕';
-  if (lower.includes('uber') || lower.includes('ola') || lower.includes('rapido')) return '🚗';
-  if (lower.includes('bescom') || lower.includes('bill') || lower.includes('electric')) return '💡';
-  if (lower.includes('amazon') || lower.includes('flipkart')) return '🛍️';
-  return '💳';
+function getMerchantInitials(name: string): string {
+  const clean = (name || '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  const words = clean.split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase() || 'TX';
+}
+
+function formatSender(address: string): string {
+  const clean = (address || '').toUpperCase();
+  if (clean.includes('HDFC')) return 'HDFC Bank';
+  if (clean.includes('SBI')) return 'SBI UPI';
+  if (clean.includes('ICICI')) return 'ICICI Bank';
+  if (clean.includes('KOTAK')) return 'Kotak Bank';
+  if (clean.includes('PAYTM')) return 'Paytm UPI';
+  if (clean.includes('AMAZON')) return 'Amazon Pay';
+  if (clean.includes('ZEPTO')) return 'Zepto';
+  if (clean.includes('SWIGGY')) return 'Swiggy';
+  if (clean.includes('ZOMATO')) return 'Zomato';
+  return clean || 'Bank SMS';
 }
 
 export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void }) {
   const [selectedSpan, setSelectedSpan] = useState<number>(7);
   const [autoImport, setAutoImport] = useState<boolean>(true);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  // Step 1: Fetched messages state
+  // Messages state
   const [fetchedMessages, setFetchedMessages] = useState<SelectableMessage[]>([]);
   const [isFetching, setIsFetching] = useState<boolean>(false);
 
-  // Step 2: Gemini Analysis state
+  // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analyzedExpenses, setAnalyzedExpenses] = useState<any[]>([]);
-  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    // Non-blocking permission check
-    checkSmsPermission().then(setHasPermission).catch(() => {});
-  }, []);
+    // Initial fetch on mount for a zero-effort first impression
+    handleFetchSms();
+  }, [selectedSpan]);
 
-  // STEP 1: Fetch SMS from phone first (never hangs)
   async function handleFetchSms() {
     setIsFetching(true);
-    setAnalyzedExpenses([]);
-    setAnalysisStatus(null);
-
     try {
-      // Non-blocking background permission prompt
-      requestSmsPermission().then(setHasPermission).catch(() => {});
-
       const rawMessages = await readDeviceSms(selectedSpan);
       const selectable: SelectableMessage[] = rawMessages.map((m, i) => ({
         ...m,
-        id: `sms-${i}-${Date.now()}`,
+        id: `sms-${i}-${m.date}`,
         selected: true,
       }));
-
       setFetchedMessages(selectable);
     } catch (err: any) {
-      Alert.alert('Fetch Notice', err.message || 'Could not fetch device SMS');
+      console.warn('Could not read messages:', err.message);
     } finally {
       setIsFetching(false);
     }
   }
 
-  // Quick 1-Tap Clipboard paste
   async function handlePasteClipboard() {
     try {
       const clip = await readClipboardSms();
@@ -88,15 +87,14 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
           selected: true,
         };
         setFetchedMessages(prev => [newMsg, ...prev]);
-        Alert.alert('Pasted from Clipboard', 'Added your copied SMS! Review it below and tap "Analyse with Gemini AI".');
       } else {
         Alert.alert(
           'Clipboard Empty',
-          'Copy your bank or UPI transaction SMS in your messaging app first, then tap this button!'
+          'Copy a bank or UPI transaction message from your messages app, then tap Paste.'
         );
       }
     } catch (err: any) {
-      Alert.alert('Clipboard Notice', err.message || 'Could not read clipboard');
+      Alert.alert('Notice', 'Unable to access clipboard.');
     }
   }
 
@@ -110,11 +108,10 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
     setFetchedMessages(prev => prev.map(m => ({ ...m, selected: select })));
   }
 
-  // STEP 2: Explicitly Analyse Selected SMS with Gemini AI
-  async function handleAnalyzeWithGemini() {
+  async function handleAnalyze() {
     const selected = fetchedMessages.filter(m => m.selected);
     if (selected.length === 0) {
-      Alert.alert('Selection Required', 'Please select at least one SMS message to analyze.');
+      Alert.alert('Selection Required', 'Select at least one message to process.');
       return;
     }
 
@@ -126,15 +123,13 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
       setAnalyzedExpenses(items);
 
       const count = res.importedCount ?? items.length;
-      setAnalysisStatus(`✓ Gemini AI analyzed ${selected.length} SMS and imported ${count} expense(s)!`);
-
       Alert.alert(
-        '✨ Gemini AI Complete',
-        `Successfully extracted and categorized ${count} expense(s) (Swiggy Instamart, UPI debits, etc.)!`
+        'Transactions Recorded',
+        `Successfully imported ${count} transaction(s) into your expenses.`
       );
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      Alert.alert('Gemini Analysis Failed', err.message || 'Error communicating with backend');
+      Alert.alert('Processing Error', err.message || 'Could not reach server.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -148,125 +143,107 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header Banner */}
-      <View style={styles.headerCard}>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>✦ GEMINI 2.5 FLASH</Text>
-        </View>
-        <Text style={styles.headerTitle}>SMS Expense Extractor</Text>
-        <Text style={styles.headerSubtitle}>
-          1. Choose span &amp; fetch SMS messages.
-          {'\n'}2. Preview the messages on screen.
-          {'\n'}3. Click &quot;Analyse with Gemini AI&quot; to categorize &amp; import!
+      {/* Title & Overview */}
+      <View style={styles.header}>
+        <Text style={styles.title}>SMS Sync</Text>
+        <Text style={styles.subtitle}>
+          Parse your bank notifications and automatically record expenses.
         </Text>
       </View>
 
-      {/* STEP 1: Fetch SMS Card */}
-      <View style={styles.stepCard}>
-        <View style={styles.stepHeader}>
-          <View style={styles.stepBadge}>
-            <Text style={styles.stepBadgeText}>STEP 1</Text>
+      {/* Control Card */}
+      <View style={styles.card}>
+        <View style={styles.controlHeader}>
+          <Text style={styles.sectionLabel}>TIMEFRAME</Text>
+          <View style={styles.segmentedControl}>
+            {[7, 14, 30].map(days => (
+              <TouchableOpacity
+                key={days}
+                style={[
+                  styles.segmentButton,
+                  selectedSpan === days && styles.segmentButtonActive,
+                ]}
+                onPress={() => setSelectedSpan(days)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    selectedSpan === days && styles.segmentTextActive,
+                  ]}
+                >
+                  {days}d
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          <Text style={styles.stepTitle}>Choose Span &amp; Fetch SMS</Text>
         </View>
 
-        <Text style={styles.spanLabel}>TIMEFRAME:</Text>
-        <View style={styles.spanRow}>
-          {[7, 14, 30, 60].map(days => (
-            <TouchableOpacity
-              key={days}
-              style={[styles.spanPill, selectedSpan === days && styles.spanPillActive]}
-              onPress={() => setSelectedSpan(days)}
-            >
-              <Text style={[styles.spanPillText, selectedSpan === days && styles.spanPillTextActive]}>
-                Last {days}d
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Action Buttons Row */}
+        {/* Action Row */}
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={[styles.fetchBtn, isFetching && styles.btnDisabled]}
+            style={[styles.primaryButton, isFetching && styles.buttonDisabled]}
             onPress={handleFetchSms}
             disabled={isFetching}
             activeOpacity={0.85}
           >
             {isFetching ? (
-              <View style={styles.btnRow}>
-                <ActivityIndicator color="#ffffff" size="small" />
-                <Text style={styles.fetchBtnText}>Reading SMS...</Text>
-              </View>
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.fetchBtnText}>
-                📥 Fetch SMS (Last {selectedSpan} Days)
-              </Text>
+              <Text style={styles.primaryButtonText}>Scan Messages</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.clipboardBtn}
+            style={styles.secondaryButton}
             onPress={handlePasteClipboard}
             activeOpacity={0.85}
           >
-            <Text style={styles.clipboardBtnText}>📋 Paste from Clipboard</Text>
+            <Text style={styles.secondaryButtonText}>Paste from Clipboard</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Permission status note */}
-        <View style={styles.permissionNote}>
-          <Text style={styles.noteIcon}>ℹ️</Text>
-          <Text style={styles.noteText}>
-            {Platform.OS === 'android'
-              ? 'Expo Go note: The generic Google Play Expo Go app restricts system permission popups. Standalone APK builds (npx expo run:android) prompt Android system permission automatically.'
-              : 'SMS engine ready.'}
-          </Text>
         </View>
       </View>
 
-      {/* STEP 2: Preview Fetched SMS (Visible after fetching) */}
+      {/* Messages Feed */}
       {fetchedMessages.length > 0 && (
-        <View style={styles.stepCard}>
-          <View style={styles.stepHeader}>
-            <View style={[styles.stepBadge, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-              <Text style={[styles.stepBadgeText, { color: '#10b981' }]}>STEP 2</Text>
-            </View>
-            <Text style={styles.stepTitle}>
-              Preview Fetched SMS ({fetchedMessages.length})
-            </Text>
-          </View>
-
-          <View style={styles.selectionBar}>
-            <Text style={styles.selectedCountText}>
-              {selectedCount} of {fetchedMessages.length} selected
+        <View style={styles.section}>
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.sectionLabel}>
+              DETECTED NOTIFICATIONS ({fetchedMessages.length})
             </Text>
             <TouchableOpacity
               onPress={() => toggleSelectAll(selectedCount < fetchedMessages.length)}
             >
-              <Text style={styles.selectToggleText}>
-                {selectedCount === fetchedMessages.length ? 'Deselect All' : 'Select All'}
+              <Text style={styles.actionLink}>
+                {selectedCount === fetchedMessages.length ? 'Deselect all' : 'Select all'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Messages list */}
-          <View style={styles.messagesList}>
+          <View style={styles.messageList}>
             {fetchedMessages.map(msg => (
               <TouchableOpacity
                 key={msg.id}
-                style={[styles.msgCard, msg.selected && styles.msgCardSelected]}
+                style={[
+                  styles.messageCard,
+                  msg.selected && styles.messageCardActive,
+                ]}
                 onPress={() => toggleMessageSelection(msg.id)}
                 activeOpacity={0.85}
               >
-                <View style={styles.msgTopRow}>
-                  <View style={styles.msgCheckRow}>
-                    <View style={[styles.msgCheck, msg.selected && styles.msgCheckActive]}>
-                      {msg.selected && <Text style={styles.msgCheckMark}>✓</Text>}
+                <View style={styles.messageHeader}>
+                  <View style={styles.messageHeaderLeft}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        msg.selected && styles.checkboxSelected,
+                      ]}
+                    >
+                      {msg.selected && <View style={styles.checkboxDot} />}
                     </View>
-                    <Text style={styles.msgSender}>{msg.address || 'BANK-SMS'}</Text>
+                    <Text style={styles.senderText}>{formatSender(msg.address)}</Text>
                   </View>
-                  <Text style={styles.msgDate}>
+                  <Text style={styles.timeText}>
                     {new Date(msg.date).toLocaleDateString('en-IN', {
                       month: 'short',
                       day: 'numeric',
@@ -274,89 +251,90 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
                   </Text>
                 </View>
 
-                <Text style={styles.msgBody} numberOfLines={3}>
+                <Text style={styles.bodyText} numberOfLines={2}>
                   {msg.body}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Auto-import toggle */}
-          <TouchableOpacity
-            style={styles.toggleRow}
-            onPress={() => setAutoImport(!autoImport)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, autoImport && styles.checkboxActive]}>
-              {autoImport && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={styles.toggleText}>Auto-import directly into Expenses</Text>
-          </TouchableOpacity>
-
-          {/* STEP 3 Button: Analyse with Gemini AI */}
-          <TouchableOpacity
-            style={[styles.geminiBtn, isAnalyzing && styles.btnDisabled]}
-            onPress={handleAnalyzeWithGemini}
-            disabled={isAnalyzing || selectedCount === 0}
-            activeOpacity={0.85}
-          >
-            {isAnalyzing ? (
-              <View style={styles.btnRow}>
-                <ActivityIndicator color="#ffffff" size="small" />
-                <Text style={styles.geminiBtnText}>Gemini AI is analyzing...</Text>
+          {/* Sync Trigger Card */}
+          <View style={styles.processCard}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setAutoImport(!autoImport)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, autoImport && styles.checkboxSelected]}>
+                {autoImport && <View style={styles.checkboxDot} />}
               </View>
-            ) : (
-              <Text style={styles.geminiBtnText}>
-                ✨ Analyse {selectedCount} SMS with Gemini AI
-              </Text>
-            )}
-          </TouchableOpacity>
+              <Text style={styles.checkboxLabel}>Auto-categorize and save to ledger</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.syncActionButton,
+                (isAnalyzing || selectedCount === 0) && styles.buttonDisabled,
+              ]}
+              onPress={handleAnalyze}
+              disabled={isAnalyzing || selectedCount === 0}
+              activeOpacity={0.85}
+            >
+              {isAnalyzing ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={styles.syncActionButtonText}>Processing...</Text>
+                </View>
+              ) : (
+                <Text style={styles.syncActionButtonText}>
+                  Record {selectedCount} Transaction{selectedCount === 1 ? '' : 's'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
-      {/* Analysis Status */}
-      {analysisStatus && (
-        <View style={styles.statusBox}>
-          <Text style={styles.statusBoxText}>{analysisStatus}</Text>
-        </View>
-      )}
-
-      {/* Detected Expenses */}
+      {/* Imported Transactions View */}
       {analyzedExpenses.length > 0 && (
-        <View style={styles.resultsCard}>
-          <Text style={styles.resultsTitle}>
-            DETECTED EXPENSES ({analyzedExpenses.length})
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>
+            RECORDED EXPENSES ({analyzedExpenses.length})
           </Text>
 
-          {analyzedExpenses.map((item, idx) => {
-            const icon = getMerchantIcon(item.merchant || item.description);
-            const catName = item.category?.name || item.categoryName || 'General';
-            return (
-              <View key={item.id || idx} style={styles.expenseItem}>
-                <View style={styles.merchantIconBox}>
-                  <Text style={styles.merchantIcon}>{icon}</Text>
-                </View>
+          <View style={styles.expenseList}>
+            {analyzedExpenses.map((item, idx) => {
+              const name = item.merchant || item.description || 'Expense';
+              const catName = item.category?.name || item.categoryName || 'General';
+              const initials = getMerchantInitials(name);
+              const amount = Number(item.amount) || 0;
 
-                <View style={styles.expenseDetails}>
-                  <Text style={styles.merchantTitle} numberOfLines={1}>
-                    {item.merchant || item.description || 'Expense'}
-                  </Text>
-                  <Text style={styles.expenseSubtitle}>
-                    {new Date(item.date).toLocaleDateString('en-IN', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}{' '}
-                    · {catName}
-                  </Text>
-                </View>
+              return (
+                <View key={item.id || idx} style={styles.expenseRow}>
+                  <View style={styles.monogram}>
+                    <Text style={styles.monogramText}>{initials}</Text>
+                  </View>
 
-                <View style={styles.amountBox}>
-                  <Text style={styles.amountText}>₹{Number(item.amount).toFixed(2)}</Text>
-                  <Text style={styles.catBadge}>{catName}</Text>
+                  <View style={styles.expenseMeta}>
+                    <Text style={styles.expenseTitle} numberOfLines={1}>
+                      {name}
+                    </Text>
+                    <Text style={styles.expenseSub}>
+                      {new Date(item.date).toLocaleDateString('en-IN', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}{' '}
+                      · {catName}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.expenseAmount}>
+                    - ₹{amount.toFixed(2)}
+                  </Text>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
       )}
     </ScrollView>
@@ -366,369 +344,264 @@ export default function SmsSyncScreen({ onRefresh }: { onRefresh?: () => void })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 90, // Prevent cut-off
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 90,
   },
-  headerCard: {
-    backgroundColor: '#131926',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.25)',
-    marginBottom: 16,
+  header: {
+    marginBottom: 20,
   },
-  headerBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(168, 85, 247, 0.2)',
-    borderColor: 'rgba(168, 85, 247, 0.4)',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginBottom: 8,
-  },
-  headerBadgeText: {
-    color: '#c084fc',
-    fontSize: 11,
+  title: {
+    fontSize: 26,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#f8fafc',
-    marginBottom: 6,
-  },
-  headerSubtitle: {
-    fontSize: 12.5,
-    color: '#94a3b8',
+  subtitle: {
+    fontSize: 13,
+    color: '#8A94A6',
     lineHeight: 18,
   },
-  stepCard: {
-    backgroundColor: '#182032',
+  card: {
+    backgroundColor: '#121722',
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    marginBottom: 24,
+  },
+  controlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
-  },
-  stepBadge: {
-    backgroundColor: 'rgba(99, 102, 241, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  stepBadgeText: {
-    color: '#818cf8',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-  },
-  spanLabel: {
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
-    letterSpacing: 0.6,
-    marginBottom: 8,
+    color: '#64748B',
+    letterSpacing: 0.8,
   },
-  spanRow: {
+  segmentedControl: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  spanPill: {
-    flex: 1,
-    backgroundColor: '#0e1320',
+    backgroundColor: '#090D16',
+    borderRadius: 8,
+    padding: 3,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 10,
-    paddingVertical: 9,
-    alignItems: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  spanPillActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#818cf8',
+  segmentButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
-  spanPillText: {
+  segmentButtonActive: {
+    backgroundColor: '#1E2536',
+  },
+  segmentText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#64748B',
   },
-  spanPillTextActive: {
-    color: '#ffffff',
-    fontWeight: '700',
+  segmentTextActive: {
+    color: '#FFFFFF',
   },
   actionRow: {
+    flexDirection: 'row',
     gap: 10,
   },
-  fetchBtn: {
-    backgroundColor: '#3b82f6',
+  primaryButton: {
+    flex: 1.2,
+    backgroundColor: '#4F46E5',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fetchBtnText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+  primaryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  clipboardBtn: {
-    backgroundColor: '#131926',
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#1A2130',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  clipboardBtnText: {
-    color: '#818cf8',
+  secondaryButtonText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
+    color: '#CBD5E1',
   },
-  geminiBtn: {
-    backgroundColor: '#8b5cf6',
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#8b5cf6',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
+  buttonDisabled: {
+    opacity: 0.5,
   },
-  geminiBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '800',
+  section: {
+    marginBottom: 24,
   },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  btnRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  permissionNote: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-    padding: 10,
-    backgroundColor: '#0e1320',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  noteIcon: {
-    fontSize: 14,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: 11,
-    color: '#64748b',
-    lineHeight: 16,
-  },
-  selectionBar: {
+  listHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  selectedCountText: {
+  actionLink: {
     fontSize: 12,
-    color: '#94a3b8',
     fontWeight: '600',
+    color: '#818CF8',
   },
-  selectToggleText: {
-    fontSize: 12,
-    color: '#818cf8',
-    fontWeight: '700',
-  },
-  messagesList: {
-    gap: 8,
+  messageList: {
+    gap: 10,
     marginBottom: 16,
   },
-  msgCard: {
-    backgroundColor: '#131926',
+  messageCard: {
+    backgroundColor: '#121722',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    padding: 12,
   },
-  msgCardSelected: {
-    borderColor: 'rgba(139, 92, 246, 0.5)',
-    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+  messageCardActive: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#141A28',
   },
-  msgTopRow: {
+  messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
-  msgCheckRow: {
+  messageHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  msgCheck: {
+  checkbox: {
     width: 18,
     height: 18,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#64748b',
+    borderColor: '#475569',
+    backgroundColor: '#090D16',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0e1320',
   },
-  msgCheckActive: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
+  checkboxSelected: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
-  msgCheckMark: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '800',
+  checkboxDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
   },
-  msgSender: {
+  senderText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#f8fafc',
+    fontWeight: '600',
+    color: '#F1F5F9',
   },
-  msgDate: {
+  timeText: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#64748B',
   },
-  msgBody: {
+  bodyText: {
     fontSize: 12,
-    color: '#cbd5e1',
+    color: '#94A3B8',
     lineHeight: 17,
+    paddingLeft: 28,
   },
-  toggleRow: {
+  processCard: {
+    backgroundColor: '#121722',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: '#64748b',
-    backgroundColor: '#0e1320',
+  checkboxLabel: {
+    fontSize: 13,
+    color: '#CBD5E1',
+    fontWeight: '500',
+  },
+  syncActionButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxActive: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
-  },
-  checkmark: {
-    color: '#ffffff',
-    fontSize: 13,
+  syncActionButtonText: {
+    fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
-  toggleText: {
-    fontSize: 13,
-    color: '#cbd5e1',
-    fontWeight: '500',
-  },
-  statusBox: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  statusBoxText: {
-    color: '#10b981',
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  resultsCard: {
-    backgroundColor: '#182032',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  resultsTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  expenseItem: {
-    backgroundColor: '#131926',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: 12,
+  loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 8,
+  },
+  expenseList: {
+    backgroundColor: '#121722',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'hidden',
+  },
+  expenseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
     gap: 12,
   },
-  merchantIconBox: {
-    width: 40,
-    height: 40,
+  monogram: {
+    width: 38,
+    height: 38,
     borderRadius: 10,
-    backgroundColor: '#182032',
+    backgroundColor: '#1A2130',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  merchantIcon: {
-    fontSize: 19,
+  monogramText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#818CF8',
+    letterSpacing: 0.5,
   },
-  expenseDetails: {
+  expenseMeta: {
     flex: 1,
   },
-  merchantTitle: {
+  expenseTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F8FAFC',
+    marginBottom: 2,
+  },
+  expenseSub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  expenseAmount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 3,
-  },
-  expenseSubtitle: {
-    fontSize: 11.5,
-    color: '#94a3b8',
-  },
-  amountBox: {
-    alignItems: 'flex-end',
-  },
-  amountText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#10b981',
-    marginBottom: 3,
-  },
-  catBadge: {
-    fontSize: 10,
-    color: '#c084fc',
-    fontWeight: '600',
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: '#F1F5F9',
   },
 });

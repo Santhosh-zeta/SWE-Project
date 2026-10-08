@@ -6,7 +6,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import styles from './Sidebar.module.css';
 
-const navItems = [
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+  badge?: string;
+}
+
+const navItems: NavItem[] = [
   {
     path: '/dashboard',
     label: 'Dashboard',
@@ -31,7 +38,6 @@ const navItems = [
   {
     path: '/sms-sync',
     label: 'SMS Sync',
-    badge: 'AI',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

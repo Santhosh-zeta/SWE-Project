@@ -89,10 +89,10 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
         {/* Brand */}
         <View style={styles.brandBox}>
           <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>💎</Text>
+            <View style={styles.logoMarkInner} />
           </View>
-          <Text style={styles.brandTitle}>FinanceTracker</Text>
-          <Text style={styles.brandSubtitle}>React Native Mobile Edition</Text>
+          <Text style={styles.brandTitle}>Finance</Text>
+          <Text style={styles.brandSubtitle}>Personal wealth & expense tracking</Text>
         </View>
 
         {/* Tab switch */}
@@ -100,12 +100,14 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
           <TouchableOpacity
             style={[styles.tab, isLogin && styles.tabActive]}
             onPress={() => setIsLogin(true)}
+            activeOpacity={0.8}
           >
             <Text style={[styles.tabText, isLogin && styles.tabTextActive]}>Sign In</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, !isLogin && styles.tabActive]}
             onPress={() => setIsLogin(false)}
+            activeOpacity={0.8}
           >
             <Text style={[styles.tabText, !isLogin && styles.tabTextActive]}>Register</Text>
           </TouchableOpacity>
@@ -119,7 +121,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
               <TextInput
                 style={styles.input}
                 placeholder="John Doe"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#64748B"
                 value={name}
                 onChangeText={setName}
               />
@@ -128,7 +130,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
               <TextInput
                 style={styles.input}
                 placeholder="50000"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#64748B"
                 keyboardType="numeric"
                 value={salary}
                 onChangeText={setSalary}
@@ -139,8 +141,8 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
           <Text style={styles.inputLabel}>Email Address</Text>
           <TextInput
             style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor="#64748b"
+            placeholder="name@example.com"
+            placeholderTextColor="#64748B"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -151,7 +153,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
           <TextInput
             style={styles.input}
             placeholder="••••••••"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#64748B"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -161,49 +163,53 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text style={styles.submitBtnText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={{ marginTop: 14, alignItems: 'center' }}
+            style={{ marginTop: 16, alignItems: 'center' }}
             onPress={() => setIsLogin(!isLogin)}
+            activeOpacity={0.7}
           >
-            <Text style={{ color: '#818cf8', fontSize: 13, fontWeight: '600' }}>
+            <Text style={{ color: '#818CF8', fontSize: 13, fontWeight: '600' }}>
               {isLogin
-                ? "Don't have an account? Tap to Register →"
-                : 'Already have an account? Tap to Sign In →'}
+                ? "Don't have an account? Create one →"
+                : 'Already have an account? Sign In →'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Server IP Config Toggle */}
+        {/* Server Host Toggle */}
         <TouchableOpacity
           style={styles.configToggle}
           onPress={() => setShowConfig(!showConfig)}
+          activeOpacity={0.7}
         >
           <Text style={styles.configToggleText}>
-            ⚙️ Server URL: {getApiUrl()} {showConfig ? '▲' : '▼'}
+            Host: {getApiUrl().replace('http://', '').replace('/api', '')} {showConfig ? '▴' : '▾'}
           </Text>
         </TouchableOpacity>
 
         {showConfig && (
           <View style={styles.configCard}>
             <Text style={styles.configNote}>
-              Set the backend API host. Use 10.0.2.2 for Android Emulator, or your PC's LAN IP for physical device.
+              Configure backend endpoint. Use your local Wi-Fi IP for physical devices or 10.0.2.2 for Android emulator.
             </Text>
             <TextInput
               style={styles.configInput}
               value={apiUrlInput}
               onChangeText={setApiUrlInput}
               autoCapitalize="none"
+              placeholderTextColor="#64748B"
             />
-            <TouchableOpacity style={styles.saveUrlBtn} onPress={handleSaveUrl}>
-              <Text style={styles.saveUrlBtnText}>Save Server URL</Text>
+            <TouchableOpacity style={styles.saveUrlBtn} onPress={handleSaveUrl} activeOpacity={0.8}>
+              <Text style={styles.saveUrlBtnText}>Update Server Endpoint</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -215,154 +221,159 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   scrollContent: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 64,
     alignItems: 'center',
   },
   brandBox: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   logoBadge: {
-    width: 54,
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: '#182032',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#121722',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
   },
-  logoIcon: {
-    fontSize: 26,
+  logoMarkInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4F46E5',
   },
   brandTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#f8fafc',
+    fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   brandSubtitle: {
     fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 2,
+    color: '#8A94A6',
+    marginTop: 4,
   },
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: '#131926',
-    borderRadius: 12,
-    padding: 4,
+    backgroundColor: '#121722',
+    borderRadius: 10,
+    padding: 3,
     width: '100%',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#1E2536',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#64748B',
   },
   tabTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   formCard: {
     width: '100%',
-    backgroundColor: '#131926',
+    backgroundColor: '#121722',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: '#64748B',
+    letterSpacing: 0.6,
     marginBottom: 6,
     marginTop: 10,
   },
   input: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#f8fafc',
-    fontSize: 15,
+    color: '#F8FAFC',
+    fontSize: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   submitBtn: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#4F46E5',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 22,
   },
   submitBtnDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   submitBtnText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
   configToggle: {
-    padding: 10,
+    padding: 8,
   },
   configToggleText: {
-    color: '#64748b',
+    color: '#64748B',
     fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
   },
   configCard: {
     width: '100%',
-    backgroundColor: '#182032',
+    backgroundColor: '#121722',
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   configNote: {
     fontSize: 11,
-    color: '#94a3b8',
-    marginBottom: 8,
+    color: '#8A94A6',
+    marginBottom: 10,
     lineHeight: 16,
   },
   configInput: {
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#F8FAFC',
     fontSize: 13,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 8,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 10,
   },
   saveUrlBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#1E2536',
     borderRadius: 8,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   saveUrlBtnText: {
-    color: '#ffffff',
+    color: '#818CF8',
     fontSize: 12,
     fontWeight: '600',
   },
