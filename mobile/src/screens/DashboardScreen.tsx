@@ -39,7 +39,7 @@ export default function DashboardScreen({ onGoToSms }: { onGoToSms: () => void }
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator color="#6366f1" size="large" />
+        <ActivityIndicator color="#4F46E5" size="large" />
       </View>
     );
   }
@@ -52,39 +52,63 @@ export default function DashboardScreen({ onGoToSms }: { onGoToSms: () => void }
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4F46E5" />
+      }
+      showsVerticalScrollIndicator={false}
     >
-      {/* KPI Cards */}
-      <View style={styles.kpiContainer}>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>MONTHLY SALARY</Text>
-          <Text style={styles.kpiValue}>₹{salary.toLocaleString('en-IN')}</Text>
+      {/* Title */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Overview</Text>
+        <Text style={styles.subtitle}>Current month spending and budget allocation.</Text>
+      </View>
+
+      {/* Main Balance Card */}
+      <View style={[styles.balanceCard, remaining < 0 && styles.balanceCardNegative]}>
+        <View style={styles.balanceHeader}>
+          <Text style={styles.balanceLabel}>REMAINING BALANCE</Text>
+          <TouchableOpacity
+            style={styles.syncShortcut}
+            onPress={onGoToSms}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.syncShortcutText}>Sync Feed →</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>TOTAL SPENT</Text>
-          <Text style={[styles.kpiValue, { color: '#f87171' }]}>
-            ₹{spent.toLocaleString('en-IN')}
-          </Text>
+        <Text
+          style={[
+            styles.balanceAmount,
+            { color: remaining >= 0 ? '#10B981' : '#EF4444' },
+          ]}
+        >
+          ₹{remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        </Text>
+
+        <View style={styles.statSplit}>
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>MONTHLY SALARY</Text>
+            <Text style={styles.statValue}>₹{salary.toLocaleString('en-IN')}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>TOTAL SPENT</Text>
+            <Text style={[styles.statValue, { color: '#F87171' }]}>
+              ₹{spent.toLocaleString('en-IN')}
+            </Text>
+          </View>
         </View>
       </View>
 
-      <View style={[styles.kpiCardFull, remaining < 0 && styles.kpiCardNegative]}>
-        <View>
-          <Text style={styles.kpiLabel}>REMAINING BALANCE</Text>
-          <Text style={[styles.kpiValueLarge, { color: remaining >= 0 ? '#10b981' : '#ef4444' }]}>
-            ₹{remaining.toLocaleString('en-IN')}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.quickSyncBtn} onPress={onGoToSms} activeOpacity={0.8}>
-          <Text style={styles.quickSyncText}>⚡ Sync SMS</Text>
-        </TouchableOpacity>
+      {/* Category Breakdown */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>SPENDING BY CATEGORY</Text>
       </View>
 
-      {/* Category Spending Breakdown */}
-      <Text style={styles.sectionTitle}>CATEGORY SPENDING</Text>
       {(data?.categories || []).length === 0 ? (
-        <Text style={styles.emptyText}>No spending recorded for this month yet.</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No expenses recorded for this period yet.</Text>
+        </View>
       ) : (
         (data?.categories || []).map((cat: any) => {
           const catSpent = Number(cat.spent) || 0;
@@ -92,31 +116,36 @@ export default function DashboardScreen({ onGoToSms }: { onGoToSms: () => void }
           const pct = Math.min(100, Math.round((catSpent / (budget || 1)) * 100));
           return (
             <View key={cat.id} style={styles.catCard}>
-              <View style={styles.catHeader}>
-                <View style={styles.catTitleRow}>
-                  <View style={[styles.colorDot, { backgroundColor: cat.color || '#6366f1' }]} />
+              <View style={styles.catTopRow}>
+                <View style={styles.catTitleGroup}>
+                  <View
+                    style={[
+                      styles.catIndicator,
+                      { backgroundColor: cat.color || '#4F46E5' },
+                    ]}
+                  />
                   <Text style={styles.catName}>{cat.name}</Text>
                 </View>
-                <Text style={styles.catSpentText}>₹{catSpent.toLocaleString('en-IN')}</Text>
+                <Text style={styles.catSpentValue}>₹{catSpent.toLocaleString('en-IN')}</Text>
               </View>
 
-              <View style={styles.progressBarBg}>
+              <View style={styles.progressTrack}>
                 <View
                   style={[
-                    styles.progressBarFill,
+                    styles.progressFill,
                     {
                       width: `${pct}%`,
-                      backgroundColor: pct > 100 ? '#ef4444' : cat.color || '#6366f1',
+                      backgroundColor: pct > 100 ? '#EF4444' : cat.color || '#4F46E5',
                     },
                   ]}
                 />
               </View>
 
-              <View style={styles.catFooter}>
-                <Text style={styles.catBudgetLabel}>
+              <View style={styles.catMetaRow}>
+                <Text style={styles.catBudgetHint}>
                   Budget: ₹{budget.toLocaleString('en-IN')}
                 </Text>
-                <Text style={styles.catPercent}>{pct}%</Text>
+                <Text style={styles.catPercentage}>{pct}% used</Text>
               </View>
             </View>
           );
@@ -129,141 +158,180 @@ export default function DashboardScreen({ onGoToSms }: { onGoToSms: () => void }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 90,
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#090D16',
   },
-  kpiContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+  header: {
+    marginBottom: 20,
   },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: '#131926',
-    borderRadius: 14,
-    padding: 16,
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#8A94A6',
+    lineHeight: 18,
+  },
+  balanceCard: {
+    backgroundColor: '#121722',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    marginBottom: 28,
   },
-  kpiCardFull: {
-    backgroundColor: '#131926',
-    borderRadius: 14,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+  balanceCardNegative: {
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: '#181216',
+  },
+  balanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  balanceLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
+  syncShortcut: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#1E2536',
+  },
+  syncShortcutText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#818CF8',
+  },
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
     marginBottom: 20,
   },
-  kpiCardNegative: {
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  statSplit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
-  kpiLabel: {
+  statCol: {
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginHorizontal: 16,
+  },
+  statLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748b',
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    color: '#64748B',
+    letterSpacing: 0.6,
+    marginBottom: 4,
   },
-  kpiValue: {
-    fontSize: 18,
+  statValue: {
+    fontSize: 15,
     fontWeight: '700',
-    color: '#f8fafc',
+    color: '#F8FAFC',
   },
-  kpiValueLarge: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  quickSyncBtn: {
-    backgroundColor: '#6366f1',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  quickSyncText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-    letterSpacing: 0.8,
+  sectionHeader: {
     marginBottom: 12,
   },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
+  emptyCard: {
+    backgroundColor: '#121722',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
   emptyText: {
-    color: '#64748b',
+    color: '#64748B',
     fontSize: 13,
-    fontStyle: 'italic',
   },
   catCard: {
-    backgroundColor: '#182032',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#121722',
+    borderRadius: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
     marginBottom: 10,
   },
-  catHeader: {
+  catTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  catTitleRow: {
+  catTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  colorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  catIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   catName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: '#F8FAFC',
   },
-  catSpentText: {
+  catSpentValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#f8fafc',
+    color: '#F8FAFC',
   },
-  progressBarBg: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#0e1320',
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#090D16',
     overflow: 'hidden',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
   },
-  catFooter: {
+  catMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  catBudgetLabel: {
+  catBudgetHint: {
     fontSize: 11,
-    color: '#64748b',
+    color: '#64748B',
   },
-  catPercent: {
+  catPercentage: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#8A94A6',
   },
 });

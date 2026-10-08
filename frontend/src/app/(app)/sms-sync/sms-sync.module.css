@@ -56,28 +56,17 @@
   max-width: 650px;
   line-height: 1.5;
 }
-/* 1-Click Auto Sync Card */
+/* Statement Sync Card */
 .oneClickCard {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.08));
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+  box-shadow: var(--shadow-sm);
   position: relative;
-  overflow: hidden;
-}
-
-.oneClickCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
 }
 
 .oneClickHeader {
@@ -178,22 +167,20 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 28px;
+  padding: 12px 24px;
   border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #6366f1, #9333ea);
+  background: var(--primary);
   border: none;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
 .oneClickBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(147, 51, 234, 0.5);
-  background: linear-gradient(135deg, #4f46e5, #7e22ce);
+  background: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
 
 .oneClickBtn:disabled {
@@ -479,14 +466,17 @@
 }
 
 .merchantBadge {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  background: var(--bg-hover);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.05em;
   flex-shrink: 0;
   border: 1px solid var(--border);
 }

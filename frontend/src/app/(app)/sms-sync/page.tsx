@@ -31,16 +31,13 @@ const SAMPLE_SMS = [
   'Your OTP for NetBanking login is 839201. Valid for 5 mins. Do not share with anyone.',
 ].join('\n\n');
 
-function getMerchantIcon(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes('instamart') || lower.includes('blinkit') || lower.includes('zepto') || lower.includes('grocer')) return '🛒';
-  if (lower.includes('swiggy') || lower.includes('zomato') || lower.includes('food') || lower.includes('dining')) return '🍕';
-  if (lower.includes('uber') || lower.includes('ola') || lower.includes('rapido') || lower.includes('cab')) return '🚗';
-  if (lower.includes('electric') || lower.includes('water') || lower.includes('bescom') || lower.includes('bill')) return '💡';
-  if (lower.includes('amazon') || lower.includes('flipkart') || lower.includes('myntra')) return '🛍️';
-  if (lower.includes('netflix') || lower.includes('spotify') || lower.includes('prime')) return '🎬';
-  if (lower.includes('otp')) return '🔒';
-  return '💳';
+function getMerchantInitials(name: string): string {
+  const clean = (name || '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  const words = clean.split(/\s+/);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase() || 'TX';
 }
 
 export default function SmsSyncPage() {
@@ -129,10 +126,10 @@ export default function SmsSyncPage() {
         showToast('No transaction details found in the input', 'info');
       } else {
         const expenseCount = items.filter(i => i.isExpense).length;
-        showToast(`Gemini AI identified ${expenseCount} expense(s)!`, 'success');
+        showToast(`Detected ${expenseCount} expense(s)`, 'success');
       }
     } catch (err: any) {
-      showToast(err.message || 'Failed to analyze SMS with Gemini AI', 'error');
+      showToast(err.message || 'Failed to process SMS text', 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -171,7 +168,7 @@ export default function SmsSyncPage() {
 
       if (autoImportEnabled) {
         setImportedCount(res.importedCount);
-        showToast(`⚡ Auto-synced ${res.importedCount} expense(s) from the last ${selectedSpan} days!`, 'success');
+        showToast(`Synced ${res.importedCount} expense(s) from the last ${selectedSpan} days`, 'success');
         loadCategories();
       } else {
         const items = (res.data || []).map((item: any, idx: number) => ({
@@ -182,18 +179,18 @@ export default function SmsSyncPage() {
           isExpense: true,
           categoryName: item.categoryName,
           categoryId: item.categoryId || null,
-          categoryColor: item.categoryColor || '#6366f1',
+          categoryColor: item.categoryColor || '#4F46E5',
           isNewCategory: false,
           description: item.description,
           confidence: item.confidence || 0.95,
-          rawText: item.rawText || `Auto-synced transaction (${item.merchant})`,
+          rawText: item.rawText || `Synced transaction (${item.merchant})`,
           selected: true,
         }));
         setParsedItems(items);
-        showToast(`Gemini AI detected ${items.length} expense(s) across the last ${selectedSpan} days!`, 'success');
+        showToast(`Detected ${items.length} expense(s) across the last ${selectedSpan} days`, 'success');
       }
     } catch (err: any) {
-      showToast(err.message || 'Auto SMS sync failed', 'error');
+      showToast(err.message || 'Statement sync failed', 'error');
     } finally {
       setIsAutoSyncing(false);
     }
@@ -245,31 +242,22 @@ export default function SmsSyncPage() {
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <div className={styles.titleRow}>
-            <h1 className={styles.title}>SMS Expense Sync</h1>
-            <div className={styles.aiBadge}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
-              Gemini AI
-            </div>
+            <h1 className={styles.title}>SMS Sync</h1>
           </div>
           <p className={styles.subtitle}>
-            Instantly sync bank and UPI transactions from your mobile SMS (Swiggy Instamart, Zomato, Uber, Amazon, etc.).
-            Gemini AI automatically detects merchants, amounts, dates, and matches categories!
+            Automatically parse bank debit notifications and UPI alerts to record expenses.
           </p>
         </div>
       </div>
 
-      {/* 1-Click Auto-Sync Phone SMS Card */}
+      {/* Quick Statement Sync Card */}
       <div className={styles.oneClickCard}>
         <div className={styles.oneClickHeader}>
           <div className={styles.oneClickTitleRow}>
-            <span style={{ fontSize: '1.4rem' }}>⚡</span>
-            <h2 className={styles.oneClickTitle}>1-Click Phone SMS Auto-Sync</h2>
-            <span className={styles.recommendedTag}>Instant</span>
+            <h2 className={styles.oneClickTitle}>Automatic Statement Sync</h2>
           </div>
           <div className={styles.spanControls}>
-            <span className={styles.spanLabel}>Span of Days:</span>
+            <span className={styles.spanLabel}>Timeframe:</span>
             <div className={styles.spanButtons}>
               {[7, 14, 30, 60].map(days => (
                 <button
@@ -286,8 +274,8 @@ export default function SmsSyncPage() {
         </div>
 
         <p className={styles.oneClickDesc}>
-          Extracts and categorizes banking &amp; UPI expenses (Swiggy Instamart, Zomato, Uber, Amazon, etc.) from the last{' '}
-          <strong>{selectedSpan} days</strong> using Gemini AI.
+          Scan recent transactions across your bank and payment alerts for the last{' '}
+          <strong>{selectedSpan} days</strong> and prepare them for ledger reconciliation.
         </p>
 
         <div className={styles.oneClickActions}>
@@ -300,14 +288,14 @@ export default function SmsSyncPage() {
             {isAutoSyncing ? (
               <>
                 <span className="spinner spinner-sm" />
-                Auto-Syncing with Gemini AI...
+                Scanning Statements...
               </>
             ) : (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                 </svg>
-                Sync SMS from Phone (Last {selectedSpan} Days)
+                Sync Statements (Last {selectedSpan} Days)
               </>
             )}
           </button>
@@ -319,15 +307,8 @@ export default function SmsSyncPage() {
               onChange={e => setAutoImportEnabled(e.target.checked)}
               style={{ width: 17, height: 17, cursor: 'pointer' }}
             />
-            <span>Auto-import directly into Expenses</span>
+            <span>Auto-record directly into expenses</span>
           </label>
-        </div>
-
-        <div className={styles.deviceNote}>
-          <span>ℹ️</span>
-          <span>
-            <strong>Phone Web Browser Security:</strong> Operating systems (Android &amp; iOS) sandbox mobile web browsers (Chrome/Safari) to prevent websites from silently snooping on private SMS inboxes. This 1-Click Sync applies intelligent date-span parsing instantly. You can also paste directly or tap &ldquo;Sync from Clipboard&rdquo; below anytime.
-          </span>
         </div>
       </div>
 
@@ -335,7 +316,7 @@ export default function SmsSyncPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-          Or Custom Paste / File Upload
+          Manual Message Input
         </span>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
@@ -348,25 +329,38 @@ export default function SmsSyncPage() {
               type="button"
               className={styles.toolBtn}
               onClick={handlePasteFromClipboard}
-              title="Read copied SMS directly from phone/desktop clipboard"
+              title="Paste copied SMS from clipboard"
             >
-              📋 Sync from Clipboard
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              </svg>
+              Paste Clipboard
             </button>
             <button
               type="button"
               className={styles.toolBtn}
               onClick={handleLoadSamples}
-              title="Load realistic Indian banking & UPI test SMS"
+              title="Load realistic sample transaction notifications"
             >
-              📱 Load Sample SMS
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Load Samples
             </button>
             <button
               type="button"
               className={styles.toolBtn}
               onClick={() => fileInputRef.current?.click()}
-              title="Upload SMS export or backup file"
+              title="Upload text or SMS export file"
             >
-              📁 Upload SMS File
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Upload File
             </button>
             <input
               type="file"
@@ -392,7 +386,7 @@ export default function SmsSyncPage() {
         <div className={styles.textAreaWrapper}>
           <textarea
             className={styles.smsTextarea}
-            placeholder="Paste your bank or UPI SMS here (e.g. 'Rs. 349 debited for Swiggy Instamart on 07-Oct-26'). You can paste multiple SMS separated by newlines."
+            placeholder="Paste your bank or UPI transaction messages here (e.g. 'Rs. 349 debited for Swiggy Instamart on 07-Oct-26'). Multiple messages separated by newlines."
             value={smsInput}
             onChange={e => setSmsInput(e.target.value)}
           />
@@ -400,7 +394,7 @@ export default function SmsSyncPage() {
 
         <div className={styles.actionRow}>
           <span className={styles.metaInfo}>
-            💡 Tip: On mobile, copy your bank SMS and tap <strong>&ldquo;Sync from Clipboard&rdquo;</strong>
+            Copy transaction notifications from your messages app and paste above.
           </span>
 
           <button
@@ -412,14 +406,15 @@ export default function SmsSyncPage() {
             {isAnalyzing ? (
               <>
                 <span className="spinner spinner-sm" />
-                Analyzing with Gemini AI...
+                Processing Messages...
               </>
             ) : (
               <>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
-                Extract Expenses with Gemini AI
+                Process Statements
               </>
             )}
           </button>
@@ -432,10 +427,10 @@ export default function SmsSyncPage() {
           <div className={styles.sparkleSpinner} />
           <div>
             <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              Gemini AI is parsing and categorizing SMS...
+              Parsing statements and matching categories...
             </div>
             <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-              Identifying merchants, checking amounts, and mapping to your categories.
+              Extracting amounts, dates, and merchant information.
             </div>
           </div>
         </div>
@@ -507,7 +502,7 @@ export default function SmsSyncPage() {
 
           <div className={styles.cardsList}>
             {filteredItems.map(item => {
-              const icon = getMerchantIcon(item.merchant);
+              const initials = getMerchantInitials(item.merchant);
               return (
                 <div
                   key={item.id}
@@ -526,7 +521,7 @@ export default function SmsSyncPage() {
                       />
                     </div>
 
-                    <div className={styles.merchantBadge}>{icon}</div>
+                    <div className={styles.merchantBadge}>{initials}</div>
 
                     <div className={styles.merchantInfo}>
                       <div className={styles.merchantName}>
@@ -536,12 +531,11 @@ export default function SmsSyncPage() {
                             item.isExpense ? styles.typeBadgeExpense : styles.typeBadgeIgnored
                           }`}
                         >
-                          {item.isExpense ? 'Expense' : 'Ignored / OTP'}
+                          {item.isExpense ? 'Debit' : 'Ignored'}
                         </span>
                       </div>
                       <span className={styles.categoryBadge}>
-                        Confidence: {Math.round(item.confidence * 100)}% · Suggested:{' '}
-                        <strong>{item.categoryName}</strong>
+                        Category: <strong>{item.categoryName}</strong>
                       </span>
                     </div>
 
